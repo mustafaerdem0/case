@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h1>Bakiye Ekle</h1>
+  <p>Mevcut Bakiyeniz: {{ profil.bakiye }}</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Bakiye Ekle</button>
+  </form>
+{% endblock %}

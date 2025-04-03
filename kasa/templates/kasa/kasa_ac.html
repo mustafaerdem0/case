@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="kasa-acma-alani">
+        <h1>{{ kasa.ad }} Açılıyor...</h1>
+        <div id="skin-donme-alani">
+            <div id="skin-penceresi">
+                <img id="skin-resmi" src="" alt="">
+            </div>
+        </div>
+        <button id="kasa-ac-button">Kasa Aç</button>
+    </div>
+
+    <script src="{% static 'js/kasa_acma.js' %}"></script>
+{% endblock %}

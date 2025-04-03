@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h1>Kazanılan Skinler</h1>
+  <ul>
+    {% for kazanilan in kazanilanlar %}
+      <li>{{ kazanilan.skin.ad }} - {{ kazanilan.kazanma_tarihi }}</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

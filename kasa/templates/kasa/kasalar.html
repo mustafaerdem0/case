@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Kasalar</h1>
+    <div class="kasa-listesi">
+        {% for kasa in kasalar %}
+            <div class="kasa">
+                <a href="{% url 'kasa_ac' kasa.id %}">
+                    <h2>{{ kasa.ad }}</h2>
+                    <p>Fiyat: {{ kasa.fiyat }}</p>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

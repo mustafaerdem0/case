@@ -1,0 +1,18 @@
+{% extends "base.html" %} {# <-- Doğru base.html'e extend ediyor #}
+{% load static %}
+
+{% block title %}Mevcut Kasalar - {{ block.super }}{% endblock %} {# <-- block title burada tanımlanıyor #}
+
+{% block content %}
+<h1>Mevcut Kasalar</h1>
+<hr>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for case in cases %}
+        {% include "partials/case_card.html" with case=case %} {# <-- partials yolu güncellendi #}
+    {% empty %}
+        <div class="col">
+            <p>Aktif kasa bulunamadı.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

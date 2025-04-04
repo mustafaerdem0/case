@@ -1,10 +1,6 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% block title %}Bakiye Yükle - {{ block.super }}{% endblock %}
 {% block content %}
-  <h1>Bakiye Ekle</h1>
-  <p>Mevcut Bakiyeniz: {{ profil.bakiye }}</p>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Bakiye Ekle</button>
-  </form>
+<h1>Bakiye Yükle</h1><hr><div class="alert alert-info" role="alert"><strong>Bilgi:</strong> Ödeme entegrasyonu gereklidir. Bu sayfa aktif değildir.</div>
+<form><div class="mb-3"><label for="amount" class="form-label">Miktar (₺)</label><input type="number" class="form-control" id="amount" disabled></div><div class="mb-3"><label class="form-label">Yöntem</label><select class="form-select" disabled><option selected>Seçiniz...</option></select></div><button type="submit" class="btn btn-success" disabled>Ödeme Yap (Pasif)</button></form>
 {% endblock %}

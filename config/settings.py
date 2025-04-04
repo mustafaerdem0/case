@@ -11,24 +11,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ai_#9!m%kn@(y6gq!kcfr+j*956e-)nj58#9-b3qz6r##vk6^@'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -37,9 +24,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-        'kasa',
-    'bootstrap4',
+    'django.contrib.sites', # django-allauth için gerekli
+
+    # Üçüncü Parti Uygulamalar
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # --- BU İKİ SATIRI KONTROL EDİN ---
+    'allauth.socialaccount.providers.openid', # <--- BU SATIRI EKLEYİN!
+    'allauth.socialaccount.providers.steam',
+    # --- --- --- --- --- --- --- --- ---
+
+    # Kendi Uygulamalarımız
+       'kasa.apps.KasaConfig',  # Uygulama adını 'kasa' olarak değiştirdiğinizi varsayıyorum
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -49,18 +49,19 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware", # allauth
 ]
 
-ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'], # Proje geneli templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request', # allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -69,11 +70,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+ROOT_URLCONF = "config.urls"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -81,46 +78,66 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend', # Admin
+    'allauth.account.auth_backends.AuthenticationBackend', # allauth
 ]
 
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = 'tr-tr'
+TIME_ZONE = 'Europe/Istanbul'
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = 'static/'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# django-allauth Ayarları
+
+# --- Eski Ayarları Kaldırın veya Yorum Satırı Yapın ---
+# ACCOUNT_AUTHENTICATION_METHOD = 'username_email' # <- KALDIRIN/YORUM YAPIN
+# ACCOUNT_EMAIL_REQUIRED = False # <- KALDIRIN/YORUM YAPIN
+# ACCOUNT_USERNAME_REQUIRED = False # <- KALDIRIN/YORUM YAPIN
+
+# --- Yeni Ayarlar ---
+ACCOUNT_EMAIL_VERIFICATION = 'none' # Eposta doğrulaması kapalı
+ACCOUNT_UNIQUE_EMAIL = False      # Emaillerin benzersiz olması GEREKMİYOR (Steam odaklı)
+ACCOUNT_LOGIN_METHODS = {'username'} # Sadece admin panel için username ile girişe izin ver (email ile girişi kapatır)
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False # Şifre tekrarı sorma (kayıt kapalı olacağı için önemli değil)
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter' # Varsayılan adaptör
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter' # Varsayılan sosyal adaptör
+
+# Sosyal Hesap Kayıt Ayarları
+SOCIALACCOUNT_AUTO_SIGNUP = True        # Steam'den geleni otomatik kaydet
+SOCIALACCOUNT_EMAIL_VERIFICATION = ACCOUNT_EMAIL_VERIFICATION # Eposta doğrulamasını ana ayarla aynı yap
+SOCIALACCOUNT_EMAIL_REQUIRED = False    # Sosyal hesap için email zorunlu değil
+# SOCIALACCOUNT_FORMS = {'signup': 'yourapp.forms.MyCustomSocialSignupForm'} # İsterseniz özel form
+# SOCIALACCOUNT_LOGIN_ON_GET=True # Tek tıklamayla sosyal giriş (isteğe bağlı)
+
+# Siteye Doğrudan Kayıt/Giriş Ayarları (Devre Dışı Bırakma)
+ACCOUNT_ALLOW_REGISTRATION = False      # Siteye doğrudan yeni kullanıcı kaydını kapat
+# ACCOUNT_SIGNUP_FORM_CLASS = None      # Özel kayıt formu kullanma
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_ON_GET = True # Tek tıklama ile çıkış
+
+# --- STEAM PROVIDER AYARLARI (Aynı kalmalı) ---
+SOCIALACCOUNT_PROVIDERS = {
+    'steam': {
+        'APP': {
+            'client_id': '0C43BB67683B8E53B8E3028C126C16A3', # DEĞİŞTİRDİĞİNİZDEN EMİN OLUN!
+            'secret': '0C43BB67683B8E53B8E3028C126C16A3', # DEĞİŞTİRDİĞİNİZDEN EMİN OLUN!
+        },
+    }
+}
+# --- --- --- --- --- --- --- ---

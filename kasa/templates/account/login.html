@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load i18n %}{% load account socialaccount %}
+{% block head_title %}{% trans "Giriş Yap" %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5"><div class="col-md-6 col-lg-4"><div class="card"><div class="card-body text-center">
+<h1 class="card-title h3 mb-4">{% trans "Giriş Yap" %}</h1>
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}<p>{% blocktrans %}Steam hesabınızla giriş yapın:{% endblocktrans %}</p><div class="socialaccount_ballot"><a href="{% provider_login_url 'steam' process='login' %}" class="btn btn-lg btn-success w-100">Steam ile Giriş Yap</a></div>
+{% else %}<p>{% blocktrans %}Sosyal hesap girişi yapılandırılmamış.{% endblocktrans %}</p>{% endif %}
+</div></div></div></div>
+{% endblock %}

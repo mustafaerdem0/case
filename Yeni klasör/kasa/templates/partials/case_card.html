@@ -1,0 +1,15 @@
+{# --- File: kasa/templates/kasa/partials/case_card.html --- #}
+<div class="col">
+    <div class="card h-100 shadow-sm">
+        <img src="{{ case.image_url }}" class="card-img-top" alt="{{ case.name }}" style="max-height: 200px; object-fit: contain; padding: 10px;">
+        <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ case.name }}</h5>
+            <p class="card-text flex-grow-1">{{ case.description|truncatewords:15 }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                 <span class="fw-bold fs-5 text-success">{{ case.price }} ₺</span>
+                 {# kasa_ac.html'e yönlendiriyor (app name 'kasa' varsayıldı) #}
+                <a href="{% url 'case_detail' case.id %}" class="btn btn-primary">İncele</a>
+            </div>
+        </div>
+    </div>
+</div>

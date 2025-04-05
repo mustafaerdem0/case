@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# --- CSS için extra_head bloğu --- #}
+{% block extra_head %}
+<style>
+    .kasa-acma-alani { text-align: center; margin-top: 20px; }
+
+    #skin-reel-viewport {
+        width: 90%; max-width: 800px; height: 150px; overflow: hidden;
+        margin: 20px auto; border: 1px solid #555; background-color: #212529;
+        position: relative; border-radius: 5px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+    #reel-marker {
+        position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+        width: 4px; height: 100%; background-color: #ffc107; z-index: 3;
+        box-shadow: 0 0 10px #ffc107;
+    }
+    #skin-reel {
+        height: 100%; display: flex; align-items: center;
+        transition: transform 5s cubic-bezier(0.1, 0.8, 0.2, 1);
+        transform: translateX(0);
+    }
+    .reel-item {
+        width: 120px; height: 130px; flex-shrink: 0; margin: 0 5px;
+        background-color: rgba(255, 255, 255, 0.05); border-radius: 5px;
+        display: flex; flex-direction: column; justify-content: center;
+        align-items: center; padding: 5px; position: relative;
+        border: 1px solid #444; box-sizing: border-box;
+    }
+    .reel-item img { max-width: 80%; max-height: 70%; object-fit: contain; }
+    .reel-item .item-name {
+        font-size: 0.7rem; color: #ccc; margin-top: 5px; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; width: 95%; text-align: center;
+    }
+    .reel-item::after {
+        content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 5px;
+        background-color: var(--rarity-color, #FFFFFF); border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+    .reel-item.winner {
+        transform: scale(1.05); box-shadow: 0 0 15px var(--rarity-color, #FFFFFF);
+        border-color: var(--rarity-color, #FFFFFF);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kasa-acma-alani">
+    <h1>{{ case.name }}</h1>
+
+    {# --- YENİ ANİMASYON ALANI --- #}
+    <div id="skin-reel-viewport">
+        <div id="reel-marker"></div> {# Ortadaki işaretçi #}
+        <div id="skin-reel">
+            {# Reel item'ları buraya JS ile eklenecek #}
+            <div class="reel-item placeholder-item" style="opacity: 0.5;">
+                 <span class="text-muted">?</span>
+            </div>
+        </div>
+    </div>
+    {# --- ANİMASYON ALANI SONU --- #}
+
+    <button id="kasa-ac-button" class="btn btn-lg btn-warning mt-3">
+         {{ case.price }} ₺ ile Kasayı Aç!
+    </button>
+</div>
+
+{# --- Sonuç Modalı EKLENDİ --- #}
+<div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="resultModalLabel">Tebrikler!</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+         <p>Kazandığınız Eşya:</p>
+         <img id="modal-skin-image" src="" alt="Kazanan Eşya" class="img-fluid mb-3" style="max-height: 200px;">
+         <h4 id="modal-skin-name"></h4>
+         <p><span id="modal-skin-rarity-badge" class="badge"></span></p>
+         <p><a href="{% url 'profile' %}">Envanterine Git</a></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+      </div>
+    </div>
+  </div>
+</div>
+{# --- Modal Sonu --- #}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    const openCaseUrl = "{{ ajax_open_url }}";
+    const csrfToken = "{{ csrf_token }}";
+    const kasaAcButton = document.getElementById('kasa-ac-button');
+    const reelViewport = document.getElementById('skin-reel-viewport');
+    const reel = document.getElementById('skin-reel');
+    const marker = document.getElementById('reel-marker');
+    const resultModalElement = document.getElementById('resultModal');
+    const casePriceText = "{{ case.price }} ₺"; // <<< EKLENEN SATIR BURADA
+
+    // --- Sabitler ve Ayarlar ---
+    const ITEM_WIDTH = 120;
+    const ITEM_MARGIN = 5 * 2;
+    const FULL_ITEM_WIDTH = ITEM_WIDTH + ITEM_MARGIN;
+    // --- --- --- --- --- --- ---
+
+    if (!kasaAcButton || !reel || !marker || !resultModalElement) {
+        console.error("Hata: Gerekli HTML elementleri bulunamadı! (Button, Reel, Marker, Modal)");
+        if(kasaAcButton) kasaAcButton.innerHTML = "Sayfa Hatası!"; // Butonda hata göster
+        return;
+    }
+
+    const resultModal = new bootstrap.Modal(resultModalElement);
+    const modalSkinImage = document.getElementById('modal-skin-image');
+    const modalSkinName = document.getElementById('modal-skin-name');
+    const modalSkinRarityBadge = document.getElementById('modal-skin-rarity-badge');
+
+    function resetReel() {
+        reel.style.transition = 'none';
+        reel.style.transform = `translateX(0px)`;
+        reel.innerHTML = '<div class="reel-item placeholder-item" style="opacity: 0.5;"><span class="text-muted">?</span></div>';
+        const oldWinner = reel.querySelector('.winner');
+        if(oldWinner) oldWinner.classList.remove('winner');
+    }
+
+    kasaAcButton.addEventListener('click', () => {
+        kasaAcButton.disabled = true;
+        kasaAcButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Açılıyor...';
+        resetReel();
+
+        fetch(openCaseUrl, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken,'Content-Type': 'application/json','X-Requested-With': 'XMLHttpRequest'},
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.reel_items && data.winner_index !== undefined) {
+                reel.innerHTML = ''; // Temizle
+                data.reel_items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.classList.add('reel-item');
+                    itemDiv.dataset.itemId = item.id;
+                    itemDiv.style.setProperty('--rarity-color', item.rarity_color || '#FFFFFF');
+                    const img = document.createElement('img');
+                    // ÖNEMLİ: Aşağıdaki satır için kasa/static/kasa/img/placeholder.png dosyası oluşturmalısın!
+                    img.src = item.image_url || '{% static "kasa/img/placeholder.png" %}';
+                    img.alt = item.name;
+                    const nameSpan = document.createElement('span');
+                    nameSpan.classList.add('item-name'); nameSpan.textContent = item.name;
+                    itemDiv.appendChild(img); itemDiv.appendChild(nameSpan); reel.appendChild(itemDiv);
+                });
+
+                setTimeout(() => {
+                    const viewportWidth = reelViewport.offsetWidth; const targetItem = reel.children[data.winner_index];
+                    if (!targetItem) { console.error("Hata: Kazanan item reel'de bulunamadı!"); throw new Error("Kazanan item bulunamadı."); }
+                    const winnerLeft = targetItem.offsetLeft; const markerOffset = marker.offsetLeft + (marker.offsetWidth / 2);
+                    const targetX = markerOffset - winnerLeft - (targetItem.offsetWidth / 2);
+                    reel.style.transition = 'transform 5s cubic-bezier(0.1, 0.8, 0.2, 1)';
+                    reel.style.transform = `translateX(${targetX}px)`;
+                }, 100);
+
+                reel.addEventListener('transitionend', () => {
+                    const winnerElement = reel.children[data.winner_index];
+                    if (winnerElement) { winnerElement.classList.add('winner'); }
+                    kasaAcButton.disabled = false;
+                    // casePriceText artık tanımlı olduğu için hata vermemeli:
+                    kasaAcButton.innerHTML = `${casePriceText} ile Kasayı Aç!`;
+
+                    // Modal'ı göster
+                    if (modalSkinImage && modalSkinName && modalSkinRarityBadge) {
+                        modalSkinImage.src = data.won_skin.image_url;
+                        modalSkinName.textContent = data.won_skin.name;
+                        modalSkinRarityBadge.textContent = data.won_skin.rarity_name;
+                        modalSkinRarityBadge.style.backgroundColor = data.won_skin.rarity_color;
+                        resultModal.show();
+                    } else { console.error("Hata: Modal içeriği elementleri bulunamadı!"); }
+
+                }, { once: true });
+
+            } else {
+                alert('Hata: ' + (data.error || 'Geçersiz veri alındı.'));
+                 kasaAcButton.disabled = false;
+                 kasaAcButton.innerHTML = `${casePriceText} ile Kasayı Aç!`;
+            }
+            const balanceSpan = document.querySelector('.navbar-text');
+            if (balanceSpan && data.new_balance !== undefined) {
+                balanceSpan.textContent = `Hoş geldin, {{ user.username }}! (Bakiye: ${parseFloat(data.new_balance).toFixed(2)}₺)`;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Hatası:', error);
+            alert('Kasa açılırken bir sunucu hatası oluştu.');
+            kasaAcButton.disabled = false;
+            kasaAcButton.innerHTML = `${casePriceText} ile Kasayı Aç!`; // Hata durumunda da butonu düzelt
+        });
+    }); // click listener sonu
+
+    resetReel(); // Sayfa ilk yüklendiğinde de reeli sıfırla
+
+}); // DOMContentLoaded listener sonu
+</script>
+{% endblock %}

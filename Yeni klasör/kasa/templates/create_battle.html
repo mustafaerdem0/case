@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Yeni Savaş Oluştur - {{ block.super }}{% endblock %}
+{% block extra_head %}
+<style>
+    .case-selection-list { max-height: 300px; overflow-y: auto; border: 1px solid #444; padding: 10px; border-radius: 5px; background-color: #212529; }
+    .case-selection-list .form-check { margin-bottom: 5px; }
+    .case-selection-list .form-check-label { font-size: 0.9rem; cursor: pointer; }
+    .radio-inline-group .form-check { display: inline-block; margin-right: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Yeni Kasa Savaşı Oluştur</h1>
+<hr>
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %} <div class="alert alert-danger"> {% for error in form.non_field_errors %} <p>{{ error }}</p> {% endfor %} </div> {% endif %}
+
+    <div class="row">
+        <div class="col-md-6 mb-3"> {# Mod Seçimi #}
+            <label class="form-label">{{ form.mode.label }}:</label>
+            <div class="radio-inline-group"> {% for radio in form.mode %} <div class="form-check {% if form.mode.errors %}is-invalid{% endif %}"> {{ radio.tag }} <label class="form-check-label" for="{{ radio.id_for_label }}"> {{ radio.choice_label }} </label> </div> {% endfor %} </div>
+            {% if form.mode.errors %} <div class="invalid-feedback d-block"> {% for error in form.mode.errors %}{{ error }}{% endfor %} </div> {% endif %}
+        </div>
+        <div class="col-md-6 mb-3"> {# Katılımcı Sayısı #}
+             <label class="form-label">{{ form.max_participants.label }}:</label>
+            <div class="radio-inline-group"> {% for radio in form.max_participants %} <div class="form-check {% if form.max_participants.errors %}is-invalid{% endif %}"> {{ radio.tag }} <label class="form-check-label" for="{{ radio.id_for_label }}"> {{ radio.choice_label }} </label> </div> {% endfor %} </div>
+            {% if form.max_participants.errors %} <div class="invalid-feedback d-block"> {% for error in form.max_participants.errors %}{{ error }}{% endfor %} </div> {% endif %}
+        </div>
+        {# Bot Seçimi Alanı Buradan Kaldırıldı #}
+    </div>
+
+    <div class="mb-3"> {# Kasa Seçimi #}
+        <label class="form-label">{{ form.cases.label }}:</label>
+        <div class="case-selection-list p-3 {% if form.cases.errors %}border-danger{% endif %}">
+             {% for checkbox in form.cases %} <div class="form-check"> {{ checkbox.tag }} <label class="form-check-label" for="{{ checkbox.id_for_label }}"> <img src="{{ checkbox.choice_object.image_url|default:'#' }}" height="20" class="me-1 align-middle"> {{ checkbox.choice_label }} ({{ checkbox.choice_object.price }}₺) </label> </div> {% endfor %}
+        </div>
+        {% if form.cases.errors %} <div class="invalid-feedback d-block"> {% for error in form.cases.errors %}{{ error }}{% endfor %} </div> {% else %} <div class="form-text">Savaşta açılacak kasaları seçin (En az bir tane).</div> {% endif %}
+    </div>
+    <button type="submit" class="btn btn-warning">Savaşı Oluştur</button>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+{# Maliyet hesaplama JS kodu önceki gibi kalabilir #}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const caseCheckboxes = document.querySelectorAll('.case-select-checkbox');
+    const form = document.querySelector('form');
+    let totalCost = 0;
+    if (form && caseCheckboxes.length > 0) {
+        form.addEventListener('change', (event) => {
+            if (event.target.classList.contains('case-select-checkbox')) {
+                 totalCost = 0;
+                 caseCheckboxes.forEach(cb => {
+                     if (cb.checked) {
+                         const labelText = cb.nextElementSibling.textContent;
+                         const priceMatch = labelText.match(/\((\d+(\.\d{1,2})?)₺\)/);
+                         if (priceMatch && priceMatch[1]) { totalCost += parseFloat(priceMatch[1]); }
+                     }
+                 });
+                 console.log("Tahmini Maliyet:", totalCost.toFixed(2));
+            }
+        });
+        // Sayfa ilk yüklendiğinde de maliyeti hesapla (eğer önceden seçili varsa)
+        caseCheckboxes.forEach(cb => {
+             if (cb.checked) {
+                 const labelText = cb.nextElementSibling.textContent;
+                 const priceMatch = labelText.match(/\((\d+(\.\d{1,2})?)₺\)/);
+                 if (priceMatch && priceMatch[1]) { totalCost += parseFloat(priceMatch[1]); }
+             }
+         });
+         console.log("İlk Maliyet:", totalCost.toFixed(2));
+    }
+});
+</script>
+{% endblock %}

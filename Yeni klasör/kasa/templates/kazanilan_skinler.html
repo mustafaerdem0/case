@@ -1,0 +1,126 @@
+{# --- File: templates/kasa/kazanilan_skinler.html --- #}
+{% extends "base.html" %} {# veya base.html #}
+{% load static %}
+
+{% block title %}Envanter & Profil - {{ block.super }}{% endblock %}
+
+{% block content %}
+<h1>Envanter & Profil</h1>
+<hr>
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <h4>Hesap Bilgileri</h4>
+        <p><strong>Kullanıcı:</strong> {{ user.username }}</p>
+        <p><strong>E-posta:</strong> {{ user.email|default:"N/A" }}</p>
+        <p><strong>Steam ID:</strong> {{ profile.steam_id|default:"N/A" }}</p>
+        <p><strong>Bakiye:</strong> {{ profile.balance|default:"0.00" }} ₺</p>
+
+        <h4 class="mt-4">Takas URL</h4>
+        <form id="trade-url-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="trade_url" class="form-label">Steam Takas URL:</label>
+                <input type="url" class="form-control form-control-sm" id="trade_url" name="trade_url" value="{{ profile.trade_url|default:'' }}" placeholder="https://steamcommunity.com/tradeoffer/new/...">
+                <div class="form-text small">Eşya çekmek için gereklidir.</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
+            <span id="trade-url-status" class="ms-2 small"></span>
+        </form>
+    </div>
+
+    <div class="col-md-8">
+        <h4>Site Envanterim & Eşya Çek</h4>
+        <div class="alert alert-warning small" role="alert">
+            <strong>Bilgi:</strong> Eşya çekme özelliği aktif değildir. Çalışan Steam Bot ve geçerli Takas URL gereklidir.
+        </div>
+
+        {% if not profile.trade_url %}
+            <div class="alert alert-danger small" role="alert">
+                Lütfen önce Takas URL ayarlayın.
+            </div>
+        {% endif %}
+
+        {% if inventory %}
+            <form method="post" action=""> {# Gerçek withdraw işlemi için action belirlenmeli #}
+                {% csrf_token %}
+                <div class="inventory-grid mb-3 border rounded p-2 bg-dark-subtle" style="max-height: 400px; overflow-y: auto;">
+                    <div class="row row-cols-3 row-cols-md-4 row-cols-lg-5 g-2">
+                        {% for item in inventory %}
+                            <div class="col">
+                                <div class="card h-100 text-center inventory-item selectable-item profile-inventory" title="{{ item.skin.name }}">
+                                    <div class="rarity-indicator" style="background-color: {{ item.skin.rarity.color_hex|default:'#FFFFFF' }};"></div>
+                                    {# Checkbox için IF/ENDIF Düzeltildi #}
+                                    <input type="checkbox" class="form-check-input item-checkbox" name="selected_items" value="{{ item.id }}" id="item_{{ item.id }}" {% if not profile.trade_url %}disabled{% endif %}>
+                                    <label class="form-check-label stretched-link pt-2" for="item_{{ item.id }}">
+                                        <img src="{{ item.skin.image_url|default:'#' }}" class="card-img-top p-2" alt="{{ item.skin.name }}" style="max-height: 80px; object-fit: contain;">
+                                        <div class="card-body p-1">
+                                            <small class="card-title text-truncate d-block" style="font-size: 0.75rem;">{{ item.skin.name }}</small>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {# Buton için IF/ENDIF Düzeltildi #}
+                <button type="submit" class="btn btn-success" {% if not profile.trade_url %}disabled{% endif %}>Seçilenleri Çek (Pasif)</button>
+            </form>
+        {% else %}
+             <p>Envanter boş. <a href="{% url 'home' %}">Kasa aç!</a></p> {# Namespace yok #}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tradeUrlForm = document.getElementById('trade-url-form');
+    const tradeUrlInput = document.getElementById('trade_url');
+    const tradeUrlStatus = document.getElementById('trade-url-status');
+    const updateUrl = "{% url 'update_trade_url_ajax' %}"; 
+    const csrfTokenProfile = "{{ csrf_token }}";
+
+    tradeUrlForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        tradeUrlStatus.textContent = 'Kaydediliyor...';
+        tradeUrlStatus.className = 'ms-2 small text-info';
+        const formData = new FormData();
+        formData.append('trade_url', tradeUrlInput.value);
+
+        fetch(updateUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfTokenProfile, 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                tradeUrlStatus.textContent = data.message;
+                tradeUrlStatus.className = 'ms-2 small text-success';
+                // URL kaydedilince buton ve checkbox'ları aktif et
+                document.querySelectorAll('.item-checkbox, .btn-success[type="submit"]').forEach(el => el.disabled = false);
+            } else {
+                tradeUrlStatus.textContent = 'Hata: ' + data.error;
+                tradeUrlStatus.className = 'ms-2 small text-danger';
+            }
+        })
+        .catch(error => {
+            console.error('Trade URL update error:', error);
+            tradeUrlStatus.textContent = 'Sunucu hatası.';
+            tradeUrlStatus.className = 'ms-2 small text-danger';
+        });
+    });
+
+    // Checkbox seçimi için görsel stil
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.addEventListener('change', function () {
+            const card = this.closest('.selectable-item');
+            if (this.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    });
+</script>
+{% endblock %}

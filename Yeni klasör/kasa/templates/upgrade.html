@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Eşya Yükseltme - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Envanter Grid Stilleri */
+    .inventory-grid .card { cursor: pointer; border: 2px solid transparent; transition: border-color .2s ease-in-out, transform .2s ease-in-out; position: relative; }
+    .inventory-grid .card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0, 0, 0, .2); }
+    .inventory-grid .card.selected { border-color: #0dcaf0; box-shadow: 0 0 10px rgba(13, 202, 240, .5); }
+    .inventory-grid .card label { cursor: pointer; }
+    .inventory-grid .rarity-indicator { height: 4px; width: 100%; display: block; position: absolute; top: 0; left: 0; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); }
+
+    /* --- Upgrade Animasyon Stilleri (Gauge/Wheel - ÜST ALAN) --- */
+    #upgrade-top-area { min-height: 230px; display: flex; flex-direction: column; justify-content: center; align-items: center; } /* Yükseklik ayarlandı */
+
+    /* Gösterge (Gauge) Alanı */
+    #upgrade-gauge-container {
+        position: relative; width: 100px; height: 100px; margin-bottom: 15px;
+        display: none; /* Başlangıçta gizli, şans hesaplanınca görünür */
+    }
+    #upgrade-gauge {
+        width: 100%; height: 100%; border-radius: 50%;
+        background: conic-gradient( #198754 0% var(--win-zone-percent, 0%), #dc3545 var(--win-zone-percent, 0%) 100% );
+        border: 3px solid #555; position: relative; box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+    }
+    #upgrade-gauge::before { content: ''; position: absolute; top: 15%; left: 15%; width: 70%; height: 70%; background: #212529; border-radius: 50%; z-index: 1; }
+
+    /* Dönen İbre/Pointer */
+    #upgrade-pointer {
+        width: 4px; height: 45%; background-color: #ffc107; position: absolute; bottom: 50%; left: 50%;
+        transform-origin: 50% 100%; transform: translateX(-50%) rotate(0deg); z-index: 2;
+        border-radius: 2px 2px 0 0; transition: transform 0.3s ease;
+    }
+    #upgrade-pointer.spinning { animation: rotate-pointer 4s cubic-bezier(.17,.67,.6,1) forwards; }
+    @keyframes rotate-pointer { 0% { transform: translateX(-50%) rotate(0deg); } 100% { transform: translateX(-50%) rotate(var(--final-angle, 0deg)); } }
+
+    /* Buton ve Şans Metni Alanı */
+    #upgrade-chance-area { margin-top: 15px; /* Üstteki gauge ile boşluk */ display: block; }
+    #upgrade-chance-area .chance-text { /* Sadece yazı gösterimi */ display: block; /* Başlangıçta görünür */ margin-bottom: 15px; }
+    #upgrade-chance-area .chance-text span { font-size: 1.5rem; } /* Yazı boyutu biraz küçültüldü */
+
+    /* Sonuç Resimleri ve Metni (Animasyon sırasında görünür) */
+     #upgrade-result-display {
+        display: none; /* Başlangıçta gizli */
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-top: 15px; /* Gauge ile arasına boşluk */
+    }
+    #upgrade-result-items { display: flex; justify-content: space-around; align-items: center; width: 100%; max-width: 200px; margin-bottom: 10px; }
+    #upgrade-result-items img { max-width: 40%; height: 45px; object-fit: contain; border: 1px solid #444; border-radius: 4px; background-color: rgba(0,0,0,0.2); transition: opacity 0.3s ease-in-out, border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out; }
+    #upgrade-result-items img.failed-input { opacity: 0.3; }
+    #upgrade-result-items img.won-target { border-color: #198754; box-shadow: 0 0 10px #198754; }
+    #upgrade-result-items .arrow { font-size: 1.2rem; color: #ffc107; }
+    #upgrade-animation-result { font-weight: bold; margin-top: 5px; min-height: 1.5em; }
+    #upgrade-animation-result.text-success { color: #198754 !important; }
+    #upgrade-animation-result.text-danger { color: #dc3545 !important; }
+    /* --- Stiller Sonu --- */
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Eşya Yükseltme</h1>
+<p class="lead">Daha değerli bir eşya kazanma şansı yakalayın!</p>
+<hr>
+
+{% if not inventory %}
+    <div class="alert alert-warning" role="alert">Yükseltilecek eşyanız yok. <a href="{% url 'home' %}" class="alert-link">Kasa açın</a>.</div>
+{% else %}
+
+{# --- YENİ ÜST ALAN (Gauge, Buton ve Sonuç İçin) --- #}
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <div class="border rounded p-3 bg-body-tertiary" id="upgrade-top-area">
+
+            {# Gösterge (Gauge) ve İbre (Başlangıçta gizli) #}
+            <div id="upgrade-gauge-container">
+                <div id="upgrade-gauge"></div>
+                <div id="upgrade-pointer"></div>
+            </div>
+
+             {# Sonuç Resimleri ve Metni (Başlangıçta gizli) #}
+             <div id="upgrade-result-display">
+                <div id="upgrade-result-items">
+                    <img id="result-input-item-img" src="" alt="Girdi">
+                    <span class="arrow">&rarr;</span>
+                    <img id="result-target-item-img" src="" alt="Hedef">
+                </div>
+                <div id="upgrade-animation-result" class="mt-3 small"></div>
+            </div>
+
+            {# Buton ve Şans Metni Alanı #}
+            <div id="upgrade-chance-area">
+                <div class="chance-text"> {# Metin Gösterimi #}
+                     <span class="fs-3 fw-bold text-warning" id="success-chance">-- %</span><br>
+                     <small class="text-muted">Başarı Şansı</small>
+                 </div>
+                <button id="perform-upgrade-button" class="btn btn-lg btn-success" disabled>
+                    <span class="spinner-border spinner-border-sm d-none" role="status"></span> Yükselt!
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+{# --- ÜST ALAN SONU --- #}
+
+
+{# --- ALT ALAN (Item Seçimi) --- #}
+<div class="row">
+    {# 1. Eşya Seçme Sütunu #}
+    <div class="col-lg-6 col-md-12 mb-4">
+        <h4>1. Eşya(lar) Seç:</h4>
+        <div id="user-inventory-list" class="inventory-grid border rounded p-3 bg-dark-subtle" style="max-height:400px;overflow-y:auto">
+            <div class="row row-cols-3 row-cols-md-4 g-2">
+                {% for item in inventory %}
+                <div class="col">
+                    <div class="card h-100 text-center inventory-item selectable-item upgrade-source"
+                         data-item-id="{{ item.id }}" data-item-value="{{ item.skin.value }}"
+                         title="{{ item.skin.name }} (Değer: {{ item.skin.value }}₺)">
+                        <div class="rarity-indicator" style="background-color:{{ item.skin.rarity.color_hex|default:'#FFFFFF' }};"></div>
+                        <label class="form-check-label stretched-link pt-2">
+                            <img src="{{ item.skin.image_url|default:'#' }}" class="card-img-top p-2" alt="{{ item.skin.name }}" style="max-height:60px;object-fit:contain">
+                            <div class="card-body p-1"><small class="card-title text-truncate d-block" style="font-size:.75rem">{{ item.skin.name }}</small></div>
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="mt-2"><strong>Seçilen Değer:</strong> <span id="selected-value" class="fw-bold">0.00</span> ₺</div>
+    </div>
+
+    {# 2. Hedef Seçme Sütunu #}
+    <div class="col-lg-6 col-md-12 mb-4">
+        <h4>2. Hedef Seç:</h4>
+        <div id="target-item-list" class="inventory-grid border rounded p-3 bg-dark-subtle" style="max-height:400px;overflow-y:auto">
+            <div class="row row-cols-3 row-cols-md-4 g-2">
+                {% for target in potential_targets %}
+                <div class="col">
+                    <div class="card h-100 text-center inventory-item selectable-item upgrade-target"
+                         data-item-id="{{ target.id }}" data-item-value="{{ target.value }}"
+                         title="{{ target.name }} (Değer: {{ target.value }}₺)">
+                        <div class="rarity-indicator" style="background-color:{{ target.rarity.color_hex|default:'#FFFFFF' }};"></div>
+                        <label class="form-check-label stretched-link pt-2">
+                            <img src="{{ target.image_url|default:'#' }}" class="card-img-top p-2" alt="{{ target.name }}" style="max-height:60px;object-fit:contain">
+                            <div class="card-body p-1"><small class="card-title text-truncate d-block" style="font-size:.75rem">{{ target.name }}</small></div>
+                        </label>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Hedef eşya yok.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="mt-2"><strong>Hedef Değer:</strong> <span id="target-value" class="fw-bold">0.00</span> ₺</div>
+    </div>
+</div>{# row sonu #}
+{% endif %} {# inventory check sonu #}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Element Referansları
+    const userInventoryList = document.getElementById('user-inventory-list');
+    const targetItemList = document.getElementById('target-item-list');
+    const selectedValueSpan = document.getElementById('selected-value');
+    const targetValueSpan = document.getElementById('target-value');
+    const successChanceSpan = document.getElementById('success-chance'); // Yazı ile şans
+    const performUpgradeButton = document.getElementById('perform-upgrade-button');
+    const upgradeChanceArea = document.getElementById('upgrade-chance-area'); // Buton ve yazı alanı
+    const upgradeGaugeContainer = document.getElementById('upgrade-gauge-container'); // Gauge + Pointer container
+    const upgradeGauge = document.getElementById('upgrade-gauge');
+    const upgradePointer = document.getElementById('upgrade-pointer');
+    const upgradeResultDisplay = document.getElementById('upgrade-result-display'); // Sonuç resimleri + metin
+    const resultInputImg = document.getElementById('result-input-item-img'); // Sonuçtaki girdi resmi
+    const resultTargetImg = document.getElementById('result-target-item-img'); // Sonuçtaki hedef resmi
+    const animResultText = document.getElementById('upgrade-animation-result'); // Sonuç metni
+    const calculateUrl = "{% url 'calculate_upgrade_ajax' %}";
+    const performUrl = "{% url 'perform_upgrade_ajax' %}";
+    const csrfTokenUpgrade = "{{ csrf_token }}";
+
+    // Durum Değişkenleri
+    let selectedInputItems = [];
+    let selectedTargetItem = null;
+    let isUpgrading = false;
+    let currentChance = 0;
+
+    // --- Yardımcı Fonksiyonlar ---
+    function updateTotalValue() { /* Değişmedi */
+        let totalSelectedValue = 0; selectedInputItems.forEach(itemId => { const card = userInventoryList.querySelector(`.upgrade-source[data-item-id="${itemId}"]`); if (card) totalSelectedValue += parseFloat(card.dataset.itemValue); }); selectedValueSpan.textContent = totalSelectedValue.toFixed(2); return totalSelectedValue;
+    }
+    function updateGaugeVisual(chancePercent) { /* Değişmedi */
+        if (upgradeGauge) { const safePercent = Math.max(0, Math.min(chancePercent, 100)); upgradeGauge.style.setProperty('--win-zone-percent', `${safePercent}%`); }
+    }
+    function updateChance() { // Şansı hesaplar, göstergeyi/butonu günceller
+        if (isUpgrading) return; const totalValue = parseFloat(selectedValueSpan.textContent); const targetValue = parseFloat(targetValueSpan.textContent); currentChance = 0; resetAnimationState(); // Başlangıç görünümünü ayarla
+
+        if (totalValue > 0 && selectedTargetItem && targetValue > 0) {
+             performUpgradeButton.disabled = true; successChanceSpan.textContent = 'Hesap...'; updateGaugeVisual(0);
+             fetch(calculateUrl, { method: 'POST', headers: { 'X-CSRFToken': csrfTokenUpgrade, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ input_item_ids: selectedInputItems, target_skin_id: selectedTargetItem }) })
+             .then(response => response.json()).then(data => { if (data.success) { currentChance = data.chance; successChanceSpan.textContent = currentChance.toFixed(2) + ' %'; updateGaugeVisual(currentChance); performUpgradeButton.disabled = false; upgradeGaugeContainer.style.display = 'block'; /* Gauge'u göster */ successChanceSpan.parentElement.style.display = 'block'; /* Şans yazısını göster */} else { successChanceSpan.textContent = 'Hata!'; console.error('Şans H:', data.error); performUpgradeButton.disabled = true; updateGaugeVisual(0); upgradeGaugeContainer.style.display = 'none'; /* Hata varsa gauge gizle */ successChanceSpan.parentElement.style.display = 'block'; } })
+             .catch(error => { successChanceSpan.textContent = 'Hata!'; console.error('Fetch H (Hesap):', error); performUpgradeButton.disabled = true; updateGaugeVisual(0); upgradeGaugeContainer.style.display = 'none'; successChanceSpan.parentElement.style.display = 'block'; });
+        } else { successChanceSpan.textContent = '-- %'; targetValueSpan.textContent = '0.00'; performUpgradeButton.disabled = true; updateGaugeVisual(0); upgradeGaugeContainer.style.display = 'none'; successChanceSpan.parentElement.style.display = 'block';/* Şans yoksa gauge gizle */ }
+    }
+    function resetAnimationState() { // Animasyonu sıfırlar, başlangıç görünümüne döner
+        upgradeResultDisplay.style.display = 'none'; // Sonuç alanını gizle
+        if (currentChance > 0) { // Sadece geçerli şans varsa göstergeyi göster
+             upgradeGaugeContainer.style.display = 'block';
+             successChanceSpan.parentElement.style.display = 'block'; // Şans yazısını göster
+        } else {
+             upgradeGaugeContainer.style.display = 'none';
+             successChanceSpan.parentElement.style.display = 'block'; // Şans yazısını göster
+        }
+        upgradeChanceArea.style.display = 'block'; // Buton alanını göster
+        if(upgradePointer) { upgradePointer.classList.remove('spinning'); upgradePointer.style.setProperty('--final-angle', '0deg'); upgradePointer.style.transform = 'translateX(-50%) rotate(0deg)';}
+        isUpgrading = false;
+        performUpgradeButton.disabled = (currentChance <= 0);
+    }
+
+    // --- Olay Dinleyiciler ---
+    userInventoryList.addEventListener('click', (event) => { /* Değişmedi */
+        if (isUpgrading) return; const card = event.target.closest('.upgrade-source'); if (!card) return; const itemId = card.dataset.itemId; card.classList.toggle('selected'); if (card.classList.contains('selected')) { selectedInputItems.push(itemId); } else { selectedInputItems = selectedInputItems.filter(id => id !== itemId); } updateTotalValue(); updateChance();
+    });
+    targetItemList.addEventListener('click', (event) => { /* Değişmedi */
+        if (isUpgrading) return; const card = event.target.closest('.upgrade-target'); if (!card) return; const previouslySelected = targetItemList.querySelector('.selected'); if (previouslySelected) { previouslySelected.classList.remove('selected'); } card.classList.add('selected'); selectedTargetItem = card.dataset.itemId; targetValueSpan.textContent = parseFloat(card.dataset.itemValue).toFixed(2); updateChance();
+    });
+
+    // Yükseltme Butonu Olayı
+    performUpgradeButton.addEventListener('click', () => {
+        if (isUpgrading || selectedInputItems.length === 0 || !selectedTargetItem || currentChance <= 0) { return; }
+        isUpgrading = true;
+        performUpgradeButton.disabled = true;
+        upgradeChanceArea.style.display = 'none'; // Buton/Şans yazısını gizle
+        upgradeGaugeContainer.style.display = 'block'; // Gauge zaten görünür olmalı ama emin olalım
+        upgradeResultDisplay.style.display = 'flex'; // Sonuç alanını (boşken) göster
+        animResultText.textContent = 'Yükseltiliyor...'; // Sonuç metnini ayarla
+        animResultText.className = 'mt-3 small text-info';
+        resultInputImg.style.opacity = '1'; resultTargetImg.style.border = '1px solid #444'; resultTargetImg.style.boxShadow = 'none'; // Stil sıfırla
+        resultInputImg.classList.remove('failed-input'); resultTargetImg.classList.remove('won-target');
+        upgradePointer.classList.remove('spinning'); upgradePointer.style.transform = 'translateX(-50%) rotate(0deg)'; // Pointer reset
+
+        // Sonuç alanı için resimleri ayarla
+        const firstInputCard = userInventoryList.querySelector(`.upgrade-source[data-item-id="${selectedInputItems[0]}"]`);
+        const targetCard = targetItemList.querySelector(`.upgrade-target[data-item-id="${selectedTargetItem}"]`);
+        resultInputImg.src = firstInputCard?.querySelector('img')?.src || '';
+        resultTargetImg.src = targetCard?.querySelector('img')?.src || '';
+
+        // Backend isteği
+        fetch(performUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfTokenUpgrade, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ input_item_ids: selectedInputItems, target_skin_id: selectedTargetItem })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Sonuca göre pointer açısını hesapla
+                const serverChance = data.chance / 100.0; const winZoneAngle = serverChance * 360; let randomStopAngle;
+                if (data.outcome === 'successful') { const padding=5; const minAngle=padding; const maxAngle=Math.max(minAngle, winZoneAngle - padding); randomStopAngle = minAngle + Math.random() * (maxAngle - minAngle); }
+                else { const padding=5; const minAngle=Math.min(360 - padding, winZoneAngle + padding); const maxAngle=360 - padding; if (minAngle >= maxAngle) { randomStopAngle = winZoneAngle + padding; } else { randomStopAngle = minAngle + Math.random() * (maxAngle - minAngle); } }
+                const totalRotation = 1080 + randomStopAngle; // 3 tam tur + durma açısı
+                upgradePointer.style.setProperty('--final-angle', `${totalRotation}deg`);
+
+                // Animasyonu başlat
+                requestAnimationFrame(() => { upgradePointer.classList.add('spinning'); });
+
+                // Animasyon bitince çalışacak listener
+                upgradePointer.addEventListener('animationend', () => {
+                    if (!isUpgrading) return;
+                    if (data.outcome === 'successful') {
+                        animResultText.textContent = `Başarılı! ${data.won_skin.name}`;
+                        animResultText.className = 'mt-3 small text-success fw-bold';
+                        resultTargetImg.classList.add('won-target'); // Başarı efekti
+                    } else {
+                        animResultText.textContent = `Başarısız!`;
+                        animResultText.className = 'mt-3 small text-danger fw-bold';
+                        resultInputImg.classList.add('failed-input'); // Başarısızlık efekti
+                    }
+                    setTimeout(() => { window.location.reload(); }, 2000); // Sonucu 2sn göster, yenile
+                }, { once: true });
+
+            } else { // Fetch başarılı ama sunucudan hata geldi
+                 animResultText.textContent = `Hata: ${data.error}`;
+                 animResultText.className = 'mt-3 small text-danger';
+                 setTimeout(() => { isUpgrading = false; updateChance(); }, 2000); // Normale dön
+            }
+        })
+        .catch(error => { // Fetch tamamen başarısız
+            console.error('Fetch H (Yükselt):', error);
+            animResultText.textContent = 'Sunucu hatası.'; // Hata mesajını göster
+            upgradeResultDisplay.style.display = 'flex'; // Sonuç alanını göster (içinde metin var)
+            upgradeGaugeContainer.style.display = 'none'; // Gauge gizle
+             setTimeout(() => { isUpgrading = false; updateChance(); }, 2000); // Normale dön
+        });
+    }); // click listener sonu
+
+    // İlk yükleme
+    updateTotalValue();
+    updateChance(); // Bu resetAnimationState'i de çağıracak
+
+}); // DOMContentLoaded sonu
+</script>
+{% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load socialaccount %} {# Gerekli etiket #}
 {% block title %}Savaş #{{ battle.id }} Detayları - {{ block.super }}{% endblock %}
 
 {% block extra_head %}
@@ -8,15 +9,17 @@
     body { font-family: 'Inter', sans-serif; }
 
     /* Sonuç Kartları Stilleri */
-    .participant-result-card { margin-bottom: 1rem; }
-    .participant-result-card .card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; padding: 0.5rem 1rem; }
-    .participant-result-card .card-body { background-color: #212529; padding: 0.5rem; min-height: 80px; }
-    .participant-result-card.winner-card .card-header { background-color: rgba(25, 135, 84, 0.3); border-left: 5px solid #198754; }
-    .participant-result-card.bot-card .card-header { font-style: italic; color: #adb5bd; }
-    .unboxed-item-grid { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center;}
-    .unboxed-item-display { width: 55px; background-color: rgba(0,0,0,0.3); border-radius: 4px; padding: 2px; position: relative; border: 1px solid #444; box-sizing: border-box; }
-    .unboxed-item-display .rarity-indicator { height: 3px; position: absolute; top: 0; left: 0; width: 100%; border-top-left-radius: 4px; border-top-right-radius: 4px; }
-    .unboxed-item-display img { display: block; width: 100%; height: 35px; object-fit: contain; margin-top: 3px; }
+    .participant-result-card { margin-bottom: 1rem; background-color: #2c3034; /* Biraz daha açık arka plan */}
+    .participant-result-card .card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; padding: 0.5rem 1rem; border-bottom: 1px solid #444; }
+    .participant-result-card .card-body { background-color: transparent; /* Arka planı kaldırdık */ padding: 0.75rem; min-height: 80px; }
+    .participant-result-card.winner-card .card-header { background-color: rgba(25, 135, 84, 0.2); border-left: 5px solid #198754; } /* Vurgu */
+    .participant-result-card.bot-card .card-header { font-style: italic; color: #adb5bd; background-color: rgba(108, 117, 125, 0.1); } /* Bot vurgusu */
+    .unboxed-item-grid { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; /* Sola yasla */}
+    .unboxed-item-display { width: 60px; /* Biraz büyütüldü */ background-color: rgba(0,0,0,0.2); border-radius: 4px; padding: 3px; /* İç boşluk */ position: relative; border: 1px solid #495057; /* Sınır rengi */ box-sizing: border-box; overflow: hidden; /* Taşanları gizle */ }
+    .unboxed-item-display .rarity-indicator { height: 4px; /* Kalınlık */ position: absolute; top: 0; left: 0; width: 100%; border-top-left-radius: 3px; border-top-right-radius: 3px; /* Yuvarlaklık */ }
+    .unboxed-item-display img { display: block; width: 100%; height: 40px; /* Yükseklik */ object-fit: contain; margin-top: 4px; /* Rarity bar sonrası boşluk */ filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.4)); }
+    .unboxed-item-display .item-value-tooltip { /* İsteğe bağlı: Değeri tooltip ile göster */ position: absolute; bottom: 2px; right: 2px; font-size: 0.6rem; background: rgba(0,0,0,0.7); color: #fff; padding: 1px 3px; border-radius: 2px; display: none; /* Hover ile gösterilebilir */ }
+    .unboxed-item-display:hover .item-value-tooltip { display: block; }
 
     /* === Kasa Savaşı Reel Animasyon Stilleri (Kullanıcının Tasarımından Uyarlandı) === */
     #battle-animation-area { display: none; border: 1px solid rgba(76, 89, 119, 0.5); background-color: #1a2238; padding: 1.5rem; margin-top: 0; margin-bottom: 20px; border-radius: 0.75rem; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4); }
@@ -24,277 +27,1012 @@
     .participant-reel-container:last-child { margin-bottom: 0; }
     .participant-reel-container h6 { margin-bottom: 0.75rem; color: #e5e7eb; font-size: 1rem; font-weight: 600; text-align: left; }
     .reel-container { /* Viewport */ position: relative; width: 100%; height: 180px; overflow: hidden; background-color: #1f2940; border-radius: 0.5rem; border: 1px solid rgba(76, 89, 119, 0.3); }
-    .marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 90%; background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2)); z-index: 10; border-radius: 2px; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+    .marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 90%; background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 210, 0, 0.9), rgba(255, 255, 255, 0.2)); /* Renk güncellendi */ z-index: 10; border-radius: 2px; box-shadow: 0 0 10px rgba(255, 210, 0, 0.5); }
     .reel { /* Kayan şerit */ position: absolute; top: 0; left: 0; height: 100%; display: flex; align-items: center; will-change: transform; transform: translateX(0); /* transition JS ile atanacak */ }
-    .item { /* Reel içindeki item (kullanıcının tasarımı) */ width: 140px; height: 160px; margin: 0 10px; border-radius: 0.375rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: 0.8rem; font-weight: 500; background-color: rgba(26, 34, 56, 0.8); border-bottom: 4px solid transparent; color: #adb5bd; flex-shrink: 0; position: relative; padding: 10px 5px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
+    .item { /* Reel içindeki item (kullanıcının tasarımı) */ width: 140px; height: 160px; margin: 0 10px; border-radius: 0.375rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: 0.8rem; font-weight: 500; background-color: rgba(26, 34, 56, 0.8); border-bottom: 4px solid transparent; color: #adb5bd; flex-shrink: 0; position: relative; padding: 10px 5px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); transition: transform 0.2s ease, box-shadow 0.2s ease; /* Yumuşak geçiş */ }
     .item img { max-width: 80%; max-height: 65%; object-fit: contain; margin-bottom: 8px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4)); }
     .item span { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; color: #e5e7eb; font-weight: 600; }
-    /* Rarity sınıfları */
+    /* Rarity sınıfları (daha belirgin renkler?) */
     .rarity-common { border-bottom-color: #b0c3d9; --rarity-color-glow: #b0c3d9;}
     .rarity-uncommon { border-bottom-color: #5e98d9; --rarity-color-glow: #5e98d9;}
     .rarity-rare { border-bottom-color: #4b69ff; --rarity-color-glow: #4b69ff;}
     .rarity-mythical { border-bottom-color: #8847ff; --rarity-color-glow: #8847ff;}
     .rarity-legendary { border-bottom-color: #d32ce6; --rarity-color-glow: #d32ce6;}
     .rarity-ancient { border-bottom-color: #eb4b4b; --rarity-color-glow: #eb4b4b;}
-    .rarity-exceedingly-rare { border-bottom-color: #ffd700; --rarity-color-glow: #ffd700;}
+    .rarity-exceedinglyrare { border-bottom-color: #ffd700; --rarity-color-glow: #ffd700;} /* Tireli isim */
     .rarity-default { border-bottom-color: #6c757d; --rarity-color-glow: #6c757d;}
     /* Kazanan item vurgusu */
-    .item.winner-item { box-shadow: 0 0 15px var(--rarity-color-glow, #ffffff), inset 0 0 8px rgba(255,255,255,0.1); transform: scale(1.03); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .item.winner-item { box-shadow: 0 0 15px var(--rarity-color-glow, #ffffff), inset 0 0 8px rgba(255,255,255,0.1); transform: scale(1.03); }
 
     /* Başlangıçta Gizli Alanlar */
     #battle-results-area { display: none; }
     #battle-status-display { display: none; }
     #battle-animation-area { display: none; }
+
+     /* Spinner'ı ortalamak için */
+     #battle-status-display .status-content { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 200px; }
 </style>
 {% endblock %}
 
 
 {% block content %}
-<h1>Savaş Detayları <span class="badge bg-secondary">#{{ battle.id }}</span></h1>
+{# Başlık ve Temel Bilgiler #}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Savaş Detayları <span class="badge bg-secondary">#{{ battle.id }}</span></h1>
+    <div>
+        {# Aktif savaşlara geri dön butonu? #}
+        <a href="{% url 'active_battles_list' %}" class="btn btn-sm btn-outline-secondary">Aktif Savaşlara Dön</a>
+    </div>
+</div>
 <hr>
+
+{# Ana İçerik Alanı #}
 <div class="row">
-    {# --- SOL SÜTUN --- #}
+    {# --- SOL SÜTUN (Ana Etkileşim Alanı) --- #}
     <div class="col-md-8">
-        {# --- SAVAŞ ANA ALANI --- #}
-        <div class="border rounded p-4 text-center bg-dark-subtle mb-4" style="min-height: 300px;" id="battle-main-area">
+        {# --- SAVAŞ ANA ALANI (Durum / Animasyon / Sonuç) --- #}
+        <div class="border rounded p-4 text-center bg-dark-subtle mb-4" style="min-height: 300px; display: flex; justify-content: center; align-items: center;" id="battle-main-area">
 
             {# 1. Durum Mesajları Alanı (JS ile yönetilecek) #}
              <div id="battle-status-display">
-                 <div class="status-content battle-waiting-content" style="display: none;"> <h3 class="text-muted">Katılımcılar Bekleniyor...</h3> <p>Savaşın başlaması için {{ battle.max_participants }} katılımcıya ulaşılması gerekiyor.</p> <div class="spinner-border text-warning" role="status"> <span class="visually-hidden">Bekleniyor...</span> </div> </div>
-                 <div class="status-content battle-starting-content" style="display: none;"> <h3 class="text-warning">Savaş Başladı!</h3> <p>Kasalar açılıyor...</p> <div class="spinner-grow text-warning" role="status"> <span class="visually-hidden">Açılıyor...</span> </div> <p class="mt-3 text-muted small">(Animasyon gösterilecek...)</p> </div>
-                 <div class="status-content battle-other-content" style="display: none;"> {% if battle.status == battle.BattleStatus.CANCELLED %} <h3 class="text-danger">Savaş İptal Edildi</h3> {% elif battle.status == battle.BattleStatus.ERROR %} <h3 class="text-danger">Savaş Sırasında Hata Oluştu</h3> <p class="text-muted small">Yönetici ile iletişime geçin.</p> {% else %} <h3 class="text-danger">Savaş Durumu: {{ battle.get_status_display }}</h3> {% endif %} </div>
+                 {# Bekleme Durumu #}
+                 <div class="status-content battle-waiting-content">
+                     <h3 class="text-muted mb-3">Katılımcılar Bekleniyor...</h3>
+                     <p>Savaşın başlaması için {{ max_participants }} katılımcıya ulaşılması gerekiyor.</p>
+                     <div class="spinner-border text-warning" role="status"> <span class="visually-hidden">Bekleniyor...</span> </div>
+                 </div>
+                 {# Başlama Durumu (Animasyon öncesi kısa gösterim) #}
+                 <div class="status-content battle-starting-content">
+                     <h3 class="text-warning mb-3">Savaş Başladı!</h3>
+                     <p>Kasalar açılıyor...</p>
+                     <div class="spinner-grow text-warning" role="status"> <span class="visually-hidden">Açılıyor...</span> </div>
+                 </div>
+                 {# Diğer Durumlar (Bitmiş, İptal, Hata) - Sonuçlar gösterilmiyorsa #}
+                 <div class="status-content battle-other-content">
+                     {% if battle.status == battle.BattleStatus.CANCELLED %}
+                         <h3 class="text-danger">Savaş İptal Edildi</h3>
+                     {% elif battle.status == battle.BattleStatus.ERROR %}
+                         <h3 class="text-danger">Savaş Sırasında Hata Oluştu</h3>
+                         <p class="text-muted small">Yönetici ile iletişime geçin.</p>
+                     {% else %}
+                         {# Bu normalde FINISHED durumu için ama sonuçlar gösterileceği için buraya düşmemeli #}
+                         <h3 class="text-info">Savaş Durumu: <span id="other-status-text">{{ battle.get_status_display }}</span></h3>
+                     {% endif %}
+                 </div>
              </div>
 
             {# 2. Animasyon Alanı (JS ile yönetilecek) #}
-            <div id="battle-animation-area">
-                <h4 class="text-warning mb-3" id="battle-animation-status">Açılışlar...</h4>
+            <div id="battle-animation-area" class="w-100"> {# Genişliği %100 yapalım #}
+                <h4 class="text-warning mb-4 text-center" id="battle-animation-status">Açılışlar...</h4>
                 <div class="row g-3 justify-content-center" id="participant-reels-container">
                     {# Katılımcı Reelleri buraya JS ile eklenecek #}
+                    {# Örnek Reel Yapısı (JS bunu dinamik oluşturacak):
+                    <div class="participant-reel-container col-md-6 col-lg-...">
+                        <h6>Katılımcı Adı</h6>
+                        <div class="reel-container participant-reel-viewport">
+                            <div class="marker"></div>
+                            <div class="reel participant-reel">
+                                <div class="item rarity-..."> <img src="..." alt="..."> <span>...</span> </div>
+                                 ...
+                            </div>
+                        </div>
+                    </div>
+                    #}
                 </div>
             </div>
 
-            {# 3. Sonuç Alanı (İÇİ DJANGO ETİKETLERİ İLE DOLU) #}
-            <div id="battle-results-area">
-                 {% if battle.status == battle.BattleStatus.FINISHED %}
-                     <h3 class="text-success">Savaş Tamamlandı!</h3>
-                     <p class="mb-1">Toplam Açılan Değer: {{ battle.total_value|stringformat:".2f" }} ₺</p>
-                     {% if battle.mode == battle.BattleMode.SHARED %} <h5 class="mt-3">Değer Dağılımı:</h5> {% if value_per_participant is not None %} <p class="text-info">Her gerçek katılımcı ~{{ value_per_participant|floatformat:2 }}₺ bakiye kazandı.</p> {% else %} <p class="text-muted">Paylaşılacak gerçek katılımcı yok.</p> {% endif %}
-                     {% else %} <h5 class="mt-3">Kazanan{% if multiple_winners %}lar{% endif %}: {% for winner_p in winners %} <span class="badge bg-success fs-6 mx-1">{{ winner_p.get_display_name }}</span> {% empty %} <span class="text-muted">Yok / Belirlenemedi</span> {% endfor %} </h5>
-                     {% endif %}
-                     <hr class="my-3">
-                     <h6>Açılan Eşyalar:</h6>
-                     <div class="row g-3" id="results-participant-cards">
-                         {% for p in battle.participants.all %}
-                            <div class="col-lg-6 mb-3">
-                                 <div class="card participant-result-card h-100 {% if p.is_winner and battle.mode != battle.BattleMode.SHARED %}winner-card{% endif %} {% if p.is_bot %}bot-card{% endif %}">
-                                     <div class="card-header"><span>{{ p.get_display_name }}</span><span class="badge {% if p.is_winner and battle.mode != battle.BattleMode.SHARED %}bg-warning text-dark{% elif battle.mode == battle.BattleMode.SHARED and not p.is_bot %}bg-info text-dark{% else %}bg-light text-dark{% endif %}">{{ p.total_unboxed_value|stringformat:".2f" }} ₺</span></div>
-                                     <div class="card-body">
-                                         <div class="d-none unboxing-data-storage" data-participant-id="{{ p.id }}" data-participant-name="{{ p.get_display_name }}" data-is-bot="{{ p.is_bot|yesno:'true,false' }}"> {% for unboxing in p.unboxings.all %} <span class="unboxing-item" data-skin-id="{{ unboxing.unboxed_skin.id }}" data-skin-name="{{ unboxing.unboxed_skin.name }}" data-skin-image="{{ unboxing.unboxed_skin.get_image_url }}" data-skin-rarity-color="{{ unboxing.unboxed_skin.rarity.color_hex|default:'#FFFFFF' }}" data-skin-rarity-name="{{ unboxing.unboxed_skin.rarity.name|default:'common' }}" data-skin-value="{{ unboxing.unboxed_skin.value }}"></span> {% endfor %}</div>
-                                         <div class="unboxed-item-grid"> {% for unboxing in p.unboxings.all %} <div class="unboxed-item-display" title="{{ unboxing.unboxed_skin.name }} ({{ unboxing.unboxed_skin.value|stringformat:'.2f' }}₺)"><div class="rarity-indicator" style="background-color: {{ unboxing.unboxed_skin.rarity.color_hex|default:'#FFFFFF' }};"></div><img src="{{ unboxing.unboxed_skin.get_image_url }}" alt="{{ unboxing.unboxed_skin.name }}"></div>{% empty %} <p class="text-muted small w-100 m-0">Eşya açılmadı.</p>{% endfor %}</div>
-                                     </div>
-                                 </div>
-                            </div>
-                         {% empty %} <p class="text-muted">Katılımcı yok.</p>{% endfor %}
+            {# 3. Sonuç Alanı (JS ile yönetilecek, başlangıçta gizli) #}
+            <div id="battle-results-area" class="w-100"> {# Genişliği %100 yapalım #}
+                 <h3 class="text-success mb-3">Savaş Tamamlandı!</h3>
+                 <p class="mb-1">Toplam Açılan Değer: <strong id="results-total-value">0.00</strong> ₺</p>
+
+                 {# Kazanan(lar) veya Ortak Mod Bilgisi #}
+                 <div id="results-winner-info" class="mt-3">
+                     {# Burası JS tarafından doldurulacak #}
+                     {# Örnek: <h5 class="mt-3">Kazanan: <span class="badge bg-success fs-6 mx-1">Oyuncu1</span></h5> #}
+                     {# Örnek: <p class="text-info">Her gerçek katılımcı ~X.XX₺ bakiye kazandı.</p> #}
+                 </div>
+                 <hr class="my-3">
+
+                 {# Açılan Eşyalar Başlığı #}
+                 <h6 class="mb-3">Açılan Eşyalar:</h6>
+                 {# Katılımcı Sonuç Kartları (JS ile doldurulacak) #}
+                 <div class="row g-3" id="results-participant-cards">
+                     {# Burası JS tarafından doldurulacak #}
+                     {# Örnek Kart Yapısı (JS bunu dinamik oluşturacak):
+                     <div class="col-lg-6 mb-3">
+                          <div class="card participant-result-card h-100 [winner-card] [bot-card]">
+                              <div class="card-header">
+                                  <span>Oyuncu Adı</span>
+                                  <span class="badge bg-light text-dark">X.XX ₺</span>
+                              </div>
+                              <div class="card-body">
+                                  <div class="unboxed-item-grid">
+                                      <div class="unboxed-item-display" title="Item Adı (X.XX₺)">
+                                          <div class="rarity-indicator" style="background-color: #..."></div>
+                                          <img src="..." alt="...">
+                                          <span class="item-value-tooltip">X.XX₺</span>
+                                      </div>
+                                      ...
+                                  </div>
+                              </div>
+                          </div>
                      </div>
-                     {# Replay butonu geri eklendi #}
-                     <button id="replay-battle-button" class="btn btn-sm btn-outline-info mt-4" style="display: none;">Açılışları Tekrar İzle</button>
-                 {% endif %}
-            </div>
+                     #}
+                 </div>
+                 {# Replay butonu (JS ile kontrol edilecek) #}
+                 <button id="replay-battle-button" class="btn btn-sm btn-outline-info mt-4" style="display: none;">Açılışları Tekrar İzle</button>
+            </div> {# battle-results-area sonu #}
 
-        </div>
-        {# --- ANA ALAN SONU --- #}
+        </div> {# --- ANA ALAN SONU --- #}
 
-        {# Savaştaki Kasalar #}
-        <h4>Savaştaki Kasalar:</h4>
-         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2 mb-4"> {% for case in battle.cases.all %} <div class="col"> <div class="card card-sm text-center bg-secondary"> <img src="{{ case.get_image_url }}" class="card-img-top p-1" alt="{{ case.name }}" style="max-height: 50px; object-fit: contain;"> <div class="card-body p-1"> <small class="card-title text-white text-truncate d-block" style="font-size: 0.7rem;">{{ case.name }}</small> <small class="text-white-50 d-block">{{case.price}}₺</small> </div> </div> </div> {% empty %} <p class="text-muted">Kasalar yüklenemedi.</p> {% endfor %} </div>
-    </div>
+        {# --- Savaştaki Kasalar --- #}
+        <h4 class="mt-4">Savaştaki Kasalar ({{ battle.cases.count }}):</h4>
+         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2 mb-4">
+             {% for case in battle.cases.all %}
+                 <div class="col">
+                     <div class="card card-sm text-center bg-secondary h-100"> {# h-100 eklendi #}
+                         <img src="{{ case.image_url|default:'/static/img/placeholder.png' }}" class="card-img-top p-1" alt="{{ case.name }}" style="height: 50px; object-fit: contain;">
+                         <div class="card-body p-1 d-flex flex-column justify-content-center"> {# Dikey ortalama için flex #}
+                             <small class="card-title text-white text-truncate d-block" style="font-size: 0.7rem; line-height: 1.2;" title="{{ case.name }}">{{ case.name }}</small>
+                             <small class="text-white-50 d-block">{{case.price|stringformat:".2f"}}₺</small> {# Fiyat formatı #}
+                         </div>
+                     </div>
+                 </div>
+             {% empty %}
+                 <p class="text-muted col-12">Bu savaş için kasalar yüklenemedi.</p>
+             {% endfor %}
+         </div>
+    </div> {# --- SOL SÜTUN SONU --- #}
 
-    {# --- Sağ Sütun --- #}
+    {# --- Sağ Sütun (Bilgi ve Kontroller) --- #}
     <div class="col-md-4">
-        <h4>Savaş Bilgileri</h4> <ul class="list-group mb-3"> <li class="list-group-item d-flex justify-content-between align-items-center">Durum: <span class="badge {% if battle.status == battle.BattleStatus.WAITING %}bg-info{% elif battle.status == battle.BattleStatus.STARTING %}bg-warning text-dark{% elif battle.status == battle.BattleStatus.FINISHED %}bg-success{% elif battle.status == battle.BattleStatus.CANCELLED or battle.status == battle.BattleStatus.ERROR %}bg-danger{% else %}bg-secondary{% endif %}">{{ battle.get_status_display }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Mod: <span>{{ battle.get_mode_display }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Maliyet: <span>{{ battle.get_total_cost|stringformat:".2f" }} ₺</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturan: <span>{{ battle.creator.user.username|default:"N/A" }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturulma: <span>{{ battle.created_at|date:"d.m.Y H:i" }}</span></li> {% if battle.started_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Başlama: <span>{{ battle.started_at|date:"d.m.Y H:i" }}</span></li> {% endif %} {% if battle.finished_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Bitiş: <span>{{ battle.finished_at|date:"d.m.Y H:i" }}</span></li> {% endif %} </ul>
-        <h4>Katılımcılar (<span id="participant-count">{{ battle.get_participant_count }}</span>/{{ battle.max_participants }})</h4> <ul class="list-group mb-3" id="participant-list"> {% for p in battle.participants.all %} <li class="list-group-item {% if p.is_winner and battle.mode != battle.BattleMode.SHARED %}list-group-item-success{% endif %} {% if p.is_bot %}text-muted fst-italic{% endif %}"> {{ p.get_display_name }} {% if battle.status == battle.BattleStatus.FINISHED and not p.is_bot %} <small class="text-muted float-end">({{ p.total_unboxed_value|stringformat:".2f" }}₺)</small> {% endif %} </li> {% empty %} <li class="list-group-item text-muted">Henüz katılımcı yok.</li> {% endfor %} </ul>
+        {# Savaş Bilgileri #}
+        <h4>Savaş Bilgileri</h4>
+        <ul class="list-group mb-3">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                Durum:
+                <span id="battle-status-badge" class="badge {% if battle.status == battle.BattleStatus.WAITING %}bg-info{% elif battle.status == battle.BattleStatus.STARTING %}bg-warning text-dark{% elif battle.status == battle.BattleStatus.FINISHED %}bg-success{% elif battle.status == battle.BattleStatus.CANCELLED or battle.status == battle.BattleStatus.ERROR %}bg-danger{% else %}bg-secondary{% endif %}">{{ battle.get_status_display }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Mod: <span>{{ battle.get_mode_display }}</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Maliyet: <span>{{ battle.get_total_cost|stringformat:".2f" }} ₺</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturan: <span>{{ battle.creator.user.username|default:"N/A" }}</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturulma: <span title="{{ battle.created_at }}">{{ battle.created_at|date:"d.m.Y H:i" }}</span></li>
+            {% if battle.started_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Başlama: <span title="{{ battle.started_at }}">{{ battle.started_at|date:"d.m.Y H:i" }}</span></li> {% endif %}
+            {% if battle.finished_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Bitiş: <span title="{{ battle.finished_at }}">{{ battle.finished_at|date:"d.m.Y H:i" }}</span></li> {% endif %}
+        </ul>
+
+        {# Katılımcılar Listesi #}
+        <h4>Katılımcılar (<span id="participant-count">{{ battle.get_participant_count }}</span>/{{ max_participants }})</h4>
+        <ul class="list-group mb-3" id="participant-list">
+            {% for p in battle.participants.all %}
+                <li class="list-group-item {% if p.is_winner and battle.mode != battle.BattleMode.SHARED %}list-group-item-success{% endif %} {% if p.is_bot %}text-muted fst-italic{% endif %}" data-participant-id="{{ p.id }}">
+                    {{ p.get_display_name }}
+                    {% if battle.status == battle.BattleStatus.FINISHED and not p.is_bot %}
+                         <small class="text-muted float-end">({{ p.total_unboxed_value|stringformat:".2f" }}₺)</small>
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted" id="no-participants-message">Henüz katılımcı yok.</li>
+            {% endfor %}
+        </ul>
+
+        {# Kontrol Butonları ve Mesajlar #}
         {% if user.is_authenticated %}
-             {% if is_creator and battle.status == battle.BattleStatus.WAITING and battle.get_participant_count == battle.max_participants %}
-                 <button id="start-battle-button" class="btn btn-lg btn-warning w-100 mb-2">Savaşı Başlat!</button>
-                 <div id="start-battle-status" class="small text-muted text-center mb-2"></div>
+             {# Savaş Başlat Butonu (Sadece kurucu, WAITING durumunda ve doluysa görünür) #}
+             <button id="start-battle-button" class="btn btn-lg btn-warning w-100 mb-2" style="display: {% if can_start_battle %}block{% else %}none{% endif %};">
+                 <span class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span>
+                 Savaşı Başlat!
+             </button>
+             <div id="start-battle-status" class="small text-center mb-2"></div> {# Başlatma durumu mesajı #}
+
+             {# Bot Ekle Butonu (Sadece kurucu, WAITING durumunda ve boş yer varsa görünür) #}
+             <button id="add-bot-button" class="btn btn-sm btn-outline-secondary w-100 mb-2" style="display: {% if can_add_bot %}block{% else %}none{% endif %};">
+                 <span class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span>
+                 Bot Ekle
+             </button>
+             <div id="add-bot-status" class="small text-center mb-2"></div> {# Bot ekleme durumu mesajı #}
+
+             {# Katılma Alanı (Kullanıcı katılımcı değilse, savaş WAITING ise ve boş yer varsa) #}
+             {% if can_join %}
+                 {# Katılma işlemi backend'de henüz implemente edilmediği için butonu pasif tutuyoruz #}
+                 <form method="post" action=""> {# TODO: Katılma için URL ve view eklenmeli #}
+                     {% csrf_token %}
+                     <button type="submit" class="btn btn-success w-100" disabled title="Katılma özelliği henüz aktif değil.">
+                         {{ battle.get_total_cost|stringformat:".2f" }} ₺ ile Savaşa Katıl (Pasif)
+                     </button>
+                 </form>
+             {% elif is_participant and battle.status == battle.BattleStatus.WAITING %}
+                 <p class="text-success text-center">Bu savaşa zaten katıldın.</p>
+             {% elif not is_participant and battle.status != battle.BattleStatus.WAITING %}
+                  <p class="text-muted text-center">Bu savaş artık katılım için uygun değil.</p>
+             {% elif battle.get_participant_count >= max_participants and battle.status == battle.BattleStatus.WAITING %}
+                 <p class="text-info text-center">Savaş dolu, başlatılması bekleniyor.</p>
              {% endif %}
-            {% if can_add_bot %} <button id="add-bot-button" class="btn btn-sm btn-outline-secondary w-100 mb-2">Bot Ekle</button> <div id="add-bot-status" class="small text-muted text-center mb-2"></div> {% endif %}
-            {% if can_join %} <form method="post" action=""> {% csrf_token %} <button type="submit" class="btn btn-success w-100" disabled> {{ battle.get_total_cost|stringformat:".2f" }} ₺ ile Savaşa Katıl (Pasif)</button> </form> {% elif is_participant and battle.status == battle.BattleStatus.WAITING %} <p class="text-success">Bu savaşa zaten katıldın.</p> {% elif not is_participant and battle.status != battle.BattleStatus.WAITING and battle.status != battle.BattleStatus.STARTING %} <p class="text-muted">Bu savaş artık katılım için uygun değil.</p> {% endif %}
-        {% else %} <a href="{% url 'account_login' %}" class="btn btn-primary w-100">Savaşa Katılmak İçin Giriş Yap</a>
+        {% else %}
+            {# Giriş yapmamış kullanıcılar için mesaj #}
+            <a href="{% provider_login_url 'steam' next=request.path %}" class="btn btn-primary w-100">Savaşa Katılmak İçin Steam ile Giriş Yap</a>
         {% endif %}
-    </div>
+    </div> {# --- Sağ Sütun Sonu --- #}
+</div> {# row sonu #}
+
+{# Gizli veri depolama alanı (JS'in kullanması için) #}
+<div id="battle-data" style="display:none;"
+     data-battle-id="{{ battle.id }}"
+     data-battle-status="{{ battle.status }}"
+     data-is-creator="{{ is_creator|yesno:'true,false' }}"
+     data-is-participant="{{ is_participant|yesno:'true,false' }}"
+     data-max-participants="{{ max_participants }}"
+     data-col-lg-class="{{ col_lg_class_value }}"
+     data-add-bot-url="{% url 'add_bot_to_battle_ajax' battle.id %}"
+     data-start-battle-url="{% url 'start_battle_ajax' battle.id %}"
+     data-get-results-url="{% url 'get_battle_results_ajax' battle.id %}"
+     data-csrf-token="{{ csrf_token }}"
+     data-placeholder-image="{% static 'img/placeholder.png' %}">
+     {# possible_skins_json artık doğrudan script içinde parse edilecek #}
 </div>
+
 {% endblock %}
 
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    /* Element Referansları */
+    console.log("Battle Detail DOMContentLoaded");
+
+    /* -------- Element Referansları -------- */
+    const battleDataElement = document.getElementById('battle-data');
     const addBotButton = document.getElementById('add-bot-button');
     const addBotStatus = document.getElementById('add-bot-status');
+    const addBotSpinner = addBotButton ? addBotButton.querySelector('.spinner-border') : null;
     const startBattleButton = document.getElementById('start-battle-button');
     const startBattleStatus = document.getElementById('start-battle-status');
+    const startBattleSpinner = startBattleButton ? startBattleButton.querySelector('.spinner-border') : null;
     const participantList = document.getElementById('participant-list');
     const participantCountSpan = document.getElementById('participant-count');
+    const noParticipantsMessage = document.getElementById('no-participants-message');
+    const battleMainArea = document.getElementById('battle-main-area');
     const battleAnimationArea = document.getElementById('battle-animation-area');
-    const battleResultsArea = document.getElementById('battle-results-area');   /* <<< HTML'de tanımlı */
-    const battleAnimationStatus = document.getElementById('battle-animation-status');
+    const battleResultsArea = document.getElementById('battle-results-area');
     const battleStatusDisplay = document.getElementById('battle-status-display');
+    const battleAnimationStatus = document.getElementById('battle-animation-status');
     const participantReelsContainer = document.getElementById('participant-reels-container');
-    const replayButton = document.getElementById('replay-battle-button');     /* <<< HTML'de tanımlı */
+    const resultsParticipantCards = document.getElementById('results-participant-cards');
+    const resultsTotalValue = document.getElementById('results-total-value');
+    const resultsWinnerInfo = document.getElementById('results-winner-info');
+    const replayButton = document.getElementById('replay-battle-button');
+    const battleStatusBadge = document.getElementById('battle-status-badge'); // Sağdaki durum badge'i
 
-    /* Diğer Değişkenler */
-    const battleId = {{ battle.id }};
-    const addBotUrl = "{% url 'add_bot_to_battle_ajax' battle.id %}";
-    const startBattleUrl = "{% url 'start_battle_ajax' battle.id %}";
-    const getResultsUrl = "{% url 'get_battle_results_ajax' battle.id %}";
-    const csrfTokenBattle = "{{ csrf_token }}";
-    let currentBattleStatus = "{{ battle.status }}";
-    const colLgClassValue = {{ col_lg_class_value|default:6 }};
-    let isAnimating = false;
-    let currentUnboxingResults = null; /* Sonuçları cache'lemek için */
-
-    /* Savaştaki Olası Tüm Skinler */
+    /* -------- Veri ve Durum Değişkenleri -------- */
+    let battleId, currentBattleStatus, isCreator, isParticipant, maxParticipants, colLgClassValue;
+    let addBotUrl, startBattleUrl, getResultsUrl, csrfTokenBattle, placeholderImageUrl;
     let allPossibleSkinsFromCases = [];
-    try { allPossibleSkinsFromCases = JSON.parse('{{ possible_skins_json|escapejs }}'); if (allPossibleSkinsFromCases.length === 0) { throw new Error("No possible skins"); } }
-    catch (e) { console.warn("Olası skin verisi alınamadı:", e); allPossibleSkinsFromCases = [{id: -1, image_url:'', name:'?', rarity_color:'#555', value:0, rarity_name: 'common'}]; }
+    let currentUnboxingResults = null; // Sonuçları cache'lemek için
+    let isAnimating = false;
+    let isRequestPending = false; // Aynı anda birden fazla istek gitmesini engellemek için flag
+
+    // Verileri data-* attribute'larından al
+    function loadInitialData() {
+        console.log("loadInitialData çalışıyor...");
+        if (!battleDataElement) {
+            console.error("Kritik Hata: #battle-data elementi bulunamadı!");
+            // Sayfada bir uyarı gösterilebilir
+            if(battleMainArea) battleMainArea.innerHTML = '<div class="alert alert-danger">Sayfa verileri yüklenemedi. Lütfen sayfayı yenileyin.</div>';
+            return false;
+        }
+        try {
+            battleId = parseInt(battleDataElement.dataset.battleId);
+            currentBattleStatus = battleDataElement.dataset.battleStatus;
+            isCreator = battleDataElement.dataset.isCreator === 'true';
+            isParticipant = battleDataElement.dataset.isParticipant === 'true';
+            maxParticipants = parseInt(battleDataElement.dataset.maxParticipants);
+            colLgClassValue = parseInt(battleDataElement.dataset.colLgClass);
+            addBotUrl = battleDataElement.dataset.addBotUrl;
+            startBattleUrl = battleDataElement.dataset.startBattleUrl;
+            getResultsUrl = battleDataElement.dataset.getResultsUrl;
+            csrfTokenBattle = battleDataElement.dataset.csrfToken;
+            placeholderImageUrl = battleDataElement.dataset.placeholderImage || '/static/img/placeholder.png'; // Fallback
+            console.log("Başlangıç Verileri:", { battleId, currentBattleStatus, isCreator, isParticipant, maxParticipants, colLgClassValue, csrfTokenBattle: csrfTokenBattle ? 'Var' : 'Yok' });
+
+             // Olası Skinleri Parse Et
+            const possibleSkinsJsonRaw = '{{ possible_skins_json|escapejs }}'; // Django template'inden al
+            try {
+                allPossibleSkinsFromCases = JSON.parse(possibleSkinsJsonRaw);
+                if (!Array.isArray(allPossibleSkinsFromCases)) {
+                     console.warn("Possible skins JSON bir array değil, varsayılana dönülüyor.");
+                     allPossibleSkinsFromCases = [];
+                }
+                 console.log(`Başlangıçta ${allPossibleSkinsFromCases.length} olası skin yüklendi.`);
+                // Eğer hiç skin yoksa varsayılan ekle (animasyonun çökmemesi için)
+                if (allPossibleSkinsFromCases.length === 0) {
+                     console.warn("Hiç olası skin bulunamadı! Animasyon için varsayılan skin kullanılıyor.");
+                    allPossibleSkinsFromCases.push({id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'});
+                }
+            } catch (e) {
+                console.error("Olası skin JSON parse edilemedi:", e, "Raw JSON:", possibleSkinsJsonRaw);
+                allPossibleSkinsFromCases = [{id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}]; // Hata durumunda varsayılan
+            }
+
+            return true; // Yükleme başarılı
+
+        } catch (e) {
+            console.error("Başlangıç verileri alınırken hata oluştu:", e);
+            if(battleMainArea) battleMainArea.innerHTML = '<div class="alert alert-danger">Sayfa başlatılırken hata oluştu.</div>';
+            return false; // Yükleme başarısız
+        }
+    }
+
 
     /* -------- YARDIMCI FONKSİYONLAR -------- */
 
-    /* Arayüzü Duruma Göre Sıfırla/Ayarla */
-    function resetInitialState() {
-        console.log("resetInitialState çağrıldı. Durum:", currentBattleStatus);
-        isAnimating = false;
-        const showResults = currentBattleStatus === 'FINISHED';
-        const showStatus = !showResults;
+    // Spinner gösterme/gizleme
+    function showSpinner(spinnerElement, show = true) { if (spinnerElement) spinnerElement.style.display = show ? 'inline-block' : 'none'; }
 
-        if(battleAnimationArea) battleAnimationArea.style.display = 'none';
-        if(battleResultsArea) battleResultsArea.style.display = showResults ? 'block' : 'none';
-        if(battleStatusDisplay) battleStatusDisplay.style.display = showStatus ? 'block' : 'none';
+    // Buton aktif/pasif yapma
+    function setButtonState(buttonElement, enabled, text = null) {
+        if (buttonElement) {
+             buttonElement.disabled = !enabled;
+             // Eğer yeni metin verilmişse güncelle (spinner'ı koruyarak)
+             if (text) {
+                 const spinner = buttonElement.querySelector('.spinner-border');
+                 // Önce sadece metin düğümünü bul ve kaldır
+                 Array.from(buttonElement.childNodes).forEach(node => {
+                     if (node.nodeType === Node.TEXT_NODE) {
+                         buttonElement.removeChild(node);
+                     }
+                 });
+                 // Yeni metni sona ekle
+                buttonElement.appendChild(document.createTextNode(' ' + text));
+             }
+        }
+    }
 
-        /* HTML içindeki durum mesajlarının görünürlüğü */
-         if (battleStatusDisplay && showStatus) {
-             battleStatusDisplay.querySelectorAll('.status-content').forEach(el => {if(el.parentElement === battleStatusDisplay) el.style.display = 'none'});
-             let contentToShow = null;
-             if(currentBattleStatus === 'WAITING') contentToShow = battleStatusDisplay.querySelector('.battle-waiting-content');
-             else if(currentBattleStatus === 'STARTING') contentToShow = battleStatusDisplay.querySelector('.battle-starting-content');
-             else contentToShow = battleStatusDisplay.querySelector('.battle-other-content');
-             if (contentToShow) contentToShow.style.display = 'block';
-             else { const otherContent = battleStatusDisplay.querySelector('.battle-other-content'); if(otherContent){ otherContent.style.display = 'block'; try{otherContent.querySelector('h3').textContent = `Savaş Durumu: ${currentBattleStatus}`;}catch(e){} } }
+
+    // Durum mesajı gösterme
+    function showStatusMessage(element, message, type = 'info') {
+        if (element) {
+            element.textContent = message;
+            element.className = `small text-center mb-2 text-${type}`; // Bootstrap renk sınıfları
+        }
+    }
+
+    // Arayüzü Duruma Göre Sıfırla/Ayarla
+    function updateUIBasedOnState() {
+        console.log(`updateUIBasedOnState çağrıldı. Durum: ${currentBattleStatus}, Animasyon: ${isAnimating}`);
+
+        // Alanların görünürlüğü
+        const showStatus = !isAnimating && currentBattleStatus !== 'FINISHED';
+        const showAnimation = isAnimating;
+        const showResults = !isAnimating && currentBattleStatus === 'FINISHED';
+
+        if (battleStatusDisplay) battleStatusDisplay.style.display = showStatus ? 'flex' : 'none'; // flex yaptık
+        if (battleAnimationArea) battleAnimationArea.style.display = showAnimation ? 'block' : 'none';
+        if (battleResultsArea) battleResultsArea.style.display = showResults ? 'block' : 'none';
+
+        // Durum mesajı içeriğini ayarla (sadece görünürse)
+        if (showStatus && battleStatusDisplay) {
+            battleStatusDisplay.querySelectorAll('.status-content').forEach(el => { if(el.parentElement === battleStatusDisplay) el.style.display = 'none'; });
+            let contentToShow = null;
+            if (currentBattleStatus === 'WAITING') contentToShow = battleStatusDisplay.querySelector('.battle-waiting-content');
+            else if (currentBattleStatus === 'STARTING') contentToShow = battleStatusDisplay.querySelector('.battle-starting-content');
+            else {
+                 contentToShow = battleStatusDisplay.querySelector('.battle-other-content');
+                 // Durumu dinamik güncelle (CANCELLED ve ERROR hariç)
+                 if (contentToShow && currentBattleStatus !== 'CANCELLED' && currentBattleStatus !== 'ERROR') {
+                     const statusTextEl = contentToShow.querySelector('#other-status-text');
+                     if (statusTextEl) statusTextEl.textContent = currentBattleStatus; // Veya get_status_display karşılığı
+                 }
+            }
+            if (contentToShow) contentToShow.style.display = 'flex'; // flex yaptık
+            else { console.warn("Gösterilecek durum içeriği bulunamadı:", currentBattleStatus); }
+        }
+
+        // Butonların durumu
+        const participantCount = parseInt(participantCountSpan ? participantCountSpan.textContent : '0');
+        const isFull = participantCount >= maxParticipants;
+
+        // Bot ekleme butonu: Kurucu olmalı, WAITING durumunda olmalı, dolu olmamalı, istek beklemede olmamalı
+        const canAddBotNow = isCreator && currentBattleStatus === 'WAITING' && !isFull && !isRequestPending;
+        if (addBotButton) {
+            addBotButton.style.display = (isCreator && currentBattleStatus === 'WAITING') ? 'block' : 'none'; // WAITING'de hep göster ama disable et
+            setButtonState(addBotButton, canAddBotNow, 'Bot Ekle');
+            showSpinner(addBotSpinner, false); // Spinner'ı gizle
+            //addBotStatus.textContent = ''; // Durum mesajını temizle? (İsteğe bağlı)
+        }
+
+        // Savaş başlat butonu: Kurucu olmalı, WAITING durumunda olmalı, dolu olmalı, istek beklemede olmamalı
+        const canStartNow = isCreator && currentBattleStatus === 'WAITING' && isFull && !isRequestPending;
+         if (startBattleButton) {
+             startBattleButton.style.display = (isCreator && currentBattleStatus === 'WAITING' && isFull) ? 'block' : 'none'; // Sadece şartlar sağlanınca göster
+             setButtonState(startBattleButton, canStartNow, 'Savaşı Başlat!');
+             showSpinner(startBattleSpinner, false);
+             //startBattleStatus.textContent = '';
          }
 
-        /* Butonların durumu */
-        const isCreator = {{ is_creator|yesno:"true,false" }};
-        const participantCount = parseInt(participantCountSpan ? participantCountSpan.textContent : '{{ battle.get_participant_count }}');
-        const maxParticipants = {{ battle.max_participants }};
-        const isFull = participantCount === maxParticipants;
-        const canStart = isCreator && currentBattleStatus === 'WAITING' && isFull;
-        const canAddBot = isCreator && currentBattleStatus === 'WAITING' && !isFull; /* can_add_bot Django context yerine JS'de hesapla */
+        // Replay butonu: Sadece sonuçlar gösteriliyorsa ve sonuç verisi varsa
+        if(replayButton) replayButton.style.display = (showResults && currentUnboxingResults) ? 'inline-block' : 'none';
 
-        if (addBotButton) { addBotButton.disabled = !canAddBot; addBotButton.style.display = canAddBot ? 'block' : 'none'; }
-        if (startBattleButton) { startBattleButton.disabled = !canStart; startBattleButton.style.display = canStart ? 'block' : 'none';}
-        if(replayButton) replayButton.style.display = showResults ? 'inline-block' : 'none'; /* Replay butonu durumu */
-        if(addBotStatus) addBotStatus.textContent = '';
-        if(startBattleStatus) startBattleStatus.textContent = '';
-        console.log(`Reset Sonrası Butonlar: Add=${addBotButton?.style.display}, Start=${startBattleButton?.style.display}, Replay=${replayButton?.style.display}`); // DEBUG
+        console.log(`UI Güncelleme Sonrası: Durum=${currentBattleStatus}, Dolu=${isFull}, Bot Ekleyebilir=${canAddBotNow}, Başlatabilir=${canStartNow}`);
     }
 
-    /* Kasa Açma Reel Animasyon Fonksiyonu (Kullanıcının Tasarımına Uygun) */
+
+    // Kasa Açma Reel Animasyon Fonksiyonu (Hata Kontrollü)
     function runBattleReelAnimation(reelContainerElement, allSkinsForPadding, actualUnboxedItems, targetStopItem) {
-         return new Promise((resolve) => {
-            const reelElement = reelContainerElement.querySelector('.reel'); const viewport = reelContainerElement; const marker = reelContainerElement.querySelector('.marker');
-            if (!reelElement || !marker || !viewport) { console.error("Reel elementleri eksik:", reelContainerElement); resolve(); return; }
-            const itemWidth = 140; const itemMargin = 20; const totalItemWidth = itemWidth + itemMargin; const animationTime = 7000 + Math.random() * 1000; const animationTimingFunc = 'cubic-bezier(0.2, 0.8, 0.2, 1)'; const reelLength = 90; const winnerPositionIndex = Math.floor(reelLength * 0.8);
-            reelElement.innerHTML = ''; let displayItems = []; let paddingItems = allSkinsForPadding || []; if (paddingItems.length === 0) {paddingItems.push({id: -1, image_url:'', name:'?', rarity_color:'#b0c3d9', rarity_name:'common'});} const paddingCount = Math.max(30, Math.floor((reelLength - actualUnboxedItems.length) / 2)); /* Daha fazla padding */
-            for(let i=0; i<paddingCount; i++) { let rnd = paddingItems[Math.floor(Math.random() * paddingItems.length)]; displayItems.unshift({...rnd}); displayItems.push({...rnd}); }
-            let winnerIndexInDisplay = -1; let itemsToInsert = [...actualUnboxedItems];
-            if (targetStopItem) { displayItems.splice(winnerPositionIndex, 0, targetStopItem); winnerIndexInDisplay = winnerPositionIndex; itemsToInsert = itemsToInsert.filter(item => item?.id !== targetStopItem.id); }
-            else if (itemsToInsert.length > 0) { winnerIndexInDisplay = winnerPositionIndex; displayItems.splice(winnerIndexInDisplay, 0, itemsToInsert[0]); itemsToInsert = itemsToInsert.slice(1); }
-            itemsToInsert.forEach((item, idx) => { displayItems.splice(paddingCount + idx, 0, item); });
-            while(displayItems.length < reelLength) { let rnd = paddingItems[Math.floor(Math.random() * paddingItems.length)]; displayItems.push({...rnd}); }
-            displayItems = displayItems.slice(0, reelLength);
-            if(targetStopItem) { winnerIndexInDisplay = displayItems.findIndex(item => item?.id === targetStopItem.id); } if (winnerIndexInDisplay < 0 && displayItems.length > 0) { winnerIndexInDisplay = Math.floor(displayItems.length * 0.85); }
-            displayItems.forEach(item => { const div = document.createElement('div'); const rarityName = item?.rarity_name ? item.rarity_name.toLowerCase().replace(/[^a-z0-9-]/g, '') : 'common'; const rarityColor = item?.rarity_color || '#b0c3d9'; div.classList.add('item', `rarity-${rarityName}`); div.style.borderBottomColor = rarityColor; div.style.setProperty('--rarity-color-glow', rarityColor); const img = document.createElement('img'); img.src = item?.image_url || '/static/img/placeholder.png'; img.alt = item?.name || '?'; img.loading = 'lazy'; const nameSpan = document.createElement('span'); nameSpan.textContent = item?.name || '?'; nameSpan.title = item?.name || '?'; div.appendChild(img); div.appendChild(nameSpan); reelElement.appendChild(div); });
-            const initialOffset = Math.random() * itemWidth * 0.5; reelElement.style.transition = 'none'; reelElement.style.transform = `translateX(${initialOffset}px)`;
-             setTimeout(() => { const targetItemElement = reelElement.children[winnerIndexInDisplay]; if (!targetItemElement) { console.error("Hedef item reel elementinde bulunamadı! Index:", winnerIndexInDisplay); resolve(); return; } const containerWidth = viewport.offsetWidth; const targetPosition = (containerWidth / 2) - (totalItemWidth / 2) - (winnerIndexInDisplay * totalItemWidth); const randomOffset = (Math.random() - 0.5) * (itemWidth * 0.3); const finalPosition = targetPosition + randomOffset; reelElement.style.transition = `transform ${animationTime / 1000}s ${animationTimingFunc}`; reelElement.style.transform = `translateX(${finalPosition}px)`; reelElement.addEventListener('transitionend', () => { if (targetItemElement) targetItemElement.classList.add('winner-item'); resolve(); }, { once: true }); }, 100);
-        });
+         console.log("runBattleReelAnimation başladı. Katılımcı Unboxings:", actualUnboxedItems, "Hedef:", targetStopItem);
+         return new Promise((resolve, reject) => {
+            const reelElement = reelContainerElement.querySelector('.reel');
+            const viewport = reelContainerElement; // reelContainerElement zaten viewport
+            const marker = reelContainerElement.querySelector('.marker');
+
+            if (!reelElement || !marker || !viewport) {
+                console.error("Reel elementleri eksik:", reelContainerElement);
+                return reject("Reel elementleri eksik.");
+            }
+
+            const itemWidth = 140; const itemMargin = 10 * 2; const totalItemWidth = itemWidth + itemMargin;
+            const animationTime = 6000 + Math.random() * 1500; // Biraz daha uzun ve rastgele
+            const animationTimingFunc = 'cubic-bezier(0.2, 0.9, 0.1, 1)'; // Yumuşak bitiş
+            const reelLength = 90; // Reel uzunluğu (item sayısı)
+            const winnerPositionIndex = Math.max(10, Math.floor(reelLength * 0.8)); // Kazananın konumu (başlangıçtan biraz uzak)
+
+            reelElement.innerHTML = ''; // Önceki itemları temizle
+            let displayItems = [];
+            let paddingItems = allSkinsForPadding && allSkinsForPadding.length > 0 ? allSkinsForPadding : [{id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}]; // Fallback
+            console.log("Padding için kullanılacak skin sayısı:", paddingItems.length);
+
+             // Yeterli sayıda padding item oluştur (başına ve sonuna)
+             const paddingCountNeeded = Math.max(20, Math.floor((reelLength - actualUnboxedItems.length) / 2));
+             for(let i = 0; i < paddingCountNeeded; i++) {
+                 let rndSkin = paddingItems[Math.floor(Math.random() * paddingItems.length)];
+                 displayItems.unshift({...rndSkin}); // Başa ekle
+                 displayItems.push({...rndSkin}); // Sona ekle
+             }
+             console.log("Padding sonrası displayItems sayısı:", displayItems.length);
+
+
+            // Gerçek itemları ve hedefi araya ekle
+            let winnerIndexInDisplay = -1;
+            let itemsToInsert = [...actualUnboxedItems]; // Kopyasını al
+
+             // Hedef item'ı (kazanan) belirli bir pozisyona yerleştir
+             if (targetStopItem) {
+                 // Hedef item'ı displayItems'a ekle (eğer zaten yoksa)
+                 if (!displayItems.some(item => item && item.id === targetStopItem.id)) {
+                    displayItems.splice(winnerPositionIndex, 0, targetStopItem);
+                 }
+                 winnerIndexInDisplay = displayItems.findIndex(item => item && item.id === targetStopItem.id);
+                 // Hedef item'ı insert listesinden çıkar
+                 itemsToInsert = itemsToInsert.filter(item => item?.id !== targetStopItem.id);
+                 console.log("Hedef item eklendi. Index:", winnerIndexInDisplay);
+             } else if (itemsToInsert.length > 0) {
+                 // Hedef yoksa, ilk item'ı hedef olarak kullan
+                 const firstItem = itemsToInsert.shift(); // İlk item'ı al ve listeden çıkar
+                 if (!displayItems.some(item => item && item.id === firstItem.id)) {
+                     displayItems.splice(winnerPositionIndex, 0, firstItem);
+                 }
+                 winnerIndexInDisplay = displayItems.findIndex(item => item && item.id === firstItem.id);
+                 console.log("Hedef item olarak ilk item kullanıldı. Index:", winnerIndexInDisplay);
+             } else {
+                  // Hiç item yoksa, varsayılan bir padding item'ı hedefle
+                 winnerIndexInDisplay = winnerPositionIndex; // Rastgele bir index
+                 if (displayItems.length <= winnerIndexInDisplay) {
+                    // Eğer dizi bu index için çok kısaysa, sona ekle
+                    displayItems.push({...paddingItems[0]});
+                 }
+                 console.warn("Açılan item yok, rastgele bir padding item hedefleniyor.");
+             }
+
+
+            // Kalan itemları da ekle (hedefin etrafına rastgele?)
+            itemsToInsert.forEach((item, idx) => {
+                // Hedefin yakınına veya rastgele bir yere ekleyebiliriz
+                const insertPos = Math.max(0, winnerIndexInDisplay - itemsToInsert.length + idx + 1); // Hedefin biraz soluna
+                if (!displayItems.some(d_item => d_item && d_item.id === item.id)) { // Tekrarları engelle
+                    displayItems.splice(insertPos, 0, item);
+                }
+            });
+
+            // Reel uzunluğunu ayarla (fazlaysa kes, azsa padding ekle)
+            while (displayItems.length < reelLength) {
+                 let rndSkin = paddingItems[Math.floor(Math.random() * paddingItems.length)];
+                 displayItems.push({...rndSkin});
+             }
+            displayItems = displayItems.slice(0, reelLength); // Tam uzunluğa getir
+             console.log("Son displayItems sayısı:", displayItems.length);
+
+             // Hedef indexi tekrar bul (eklemelerden sonra değişmiş olabilir)
+            if (targetStopItem) {
+                 winnerIndexInDisplay = displayItems.findIndex(item => item && item.id === targetStopItem.id);
+            }
+            // Eğer hedef hala bulunamadıysa (veya hiç yoktuysa), ortalara yakın bir index seç
+            if (winnerIndexInDisplay < 0) {
+                 winnerIndexInDisplay = Math.floor(displayItems.length * 0.8); // Fallback
+                 console.warn("Hedef item reel'de bulunamadı, fallback index kullanılıyor:", winnerIndexInDisplay);
+             }
+              if (displayItems.length === 0) {
+                 console.error("Animasyon için hiç display item oluşturulamadı.");
+                 return reject("Animasyon itemları oluşturulamadı.");
+             }
+             // Index'in geçerli olduğundan emin ol
+             if (winnerIndexInDisplay >= displayItems.length || winnerIndexInDisplay < 0) {
+                 console.error(`Geçersiz winnerIndexInDisplay: ${winnerIndexInDisplay}, displayItems boyutu: ${displayItems.length}`);
+                 winnerIndexInDisplay = Math.max(0, Math.min(Math.floor(displayItems.length / 2), displayItems.length - 1)); // Ortayı veya son item'ı hedefle
+             }
+
+            // Itemları HTML'e ekle
+            displayItems.forEach(item => {
+                if (!item) return; // Null itemları atla (güvenlik önlemi)
+                const div = document.createElement('div');
+                // Rarity ismini class için güvenli hale getir (sadece harf, rakam, tire)
+                const rarityName = item.rarity_name ? item.rarity_name.toLowerCase().replace(/[^a-z0-9-]/g, '-') : 'default';
+                const rarityColor = item.rarity_color || '#6c757d';
+                div.classList.add('item', `rarity-${rarityName}`);
+                div.style.borderBottomColor = rarityColor;
+                div.style.setProperty('--rarity-color-glow', rarityColor);
+
+                const img = document.createElement('img');
+                img.src = item.image_url || placeholderImageUrl; // Placeholder kullan
+                img.alt = item.name || '?';
+                img.loading = 'lazy'; // Lazy loading
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = item.name || '?';
+
+                // --- HATA DÜZELTMESİ: parseFloat Kullanımı ---
+                const itemValueNumber = parseFloat(item.value || 0);
+                if (isNaN(itemValueNumber)) { // Eğer parse edilemezse (beklenmedik durum)
+                    console.warn("Item value parse edilemedi:", item.value);
+                    nameSpan.title = `${item.name || '?'} (N/A)`;
+                } else {
+                    nameSpan.title = `${item.name || '?'} (${itemValueNumber.toFixed(2)}₺)`; // Tooltip'e değeri ekle
+                }
+                // --- --- --- --- --- --- --- --- --- --- --- ---
+
+                div.appendChild(img);
+                div.appendChild(nameSpan);
+                reelElement.appendChild(div);
+            });
+
+            // Animasyonu Başlat
+            // Önce geçişi kaldırıp başlangıç pozisyonunu ayarla (rastgele offset ile)
+            const initialOffset = (Math.random() - 0.5) * itemWidth * 0.4; // Hafif rastgelelik
+            reelElement.style.transition = 'none';
+            reelElement.style.transform = `translateX(${initialOffset}px)`;
+            console.log("Başlangıç offset ayarlandı:", initialOffset);
+
+
+            // Küçük bir gecikme sonrası hedef pozisyona animasyonu başlat
+            setTimeout(() => {
+                 // Hedef elemanın varlığını tekrar kontrol et
+                 const targetItemElement = reelElement.children[winnerIndexInDisplay];
+                 if (!targetItemElement) {
+                     console.error("Animasyon: Hedef item DOM'da bulunamadı! Index:", winnerIndexInDisplay, "Toplam Çocuk:", reelElement.children.length);
+                     return reject("Hedef item DOM'da bulunamadı.");
+                 }
+
+                 const viewportWidth = viewport.offsetWidth;
+                 // Hedef item'ın tam ortasını viewport'un ortasındaki marker'a getirecek X konumu
+                 const targetCenter = targetItemElement.offsetLeft + (itemWidth / 2) + (itemMargin / 2); // Margin'i de hesaba kat
+                 const viewportCenter = viewportWidth / 2;
+                 let finalPosition = viewportCenter - targetCenter;
+
+                 // Çok hafif rastgelelik ekle (marker tam ortada olmayabilir gibi)
+                 finalPosition += (Math.random() - 0.5) * (itemWidth * 0.05);
+                 console.log(`Animasyon: Hedef Index=${winnerIndexInDisplay}, Hedef Merkez=${targetCenter.toFixed(2)}, Viewport Merkez=${viewportCenter.toFixed(2)}, Son Pozisyon=${finalPosition.toFixed(2)}`);
+
+                 reelElement.style.transition = `transform ${animationTime / 1000}s ${animationTimingFunc}`;
+                 reelElement.style.transform = `translateX(${finalPosition}px)`;
+
+                 // Animasyon bitişini dinle
+                 reelElement.addEventListener('transitionend', () => {
+                     console.log("Animasyon bitti. Hedef item:", targetItemElement);
+                     if (targetItemElement) {
+                         targetItemElement.classList.add('winner-item'); // Kazananı vurgula
+                     }
+                     resolve(); // Promise'i başarıyla tamamla
+                 }, { once: true }); // Sadece bir kere tetiklensin
+
+            }, 100); // 100ms gecikme (render için)
+
+        }); // Promise sonu
+    } // runBattleReelAnimation sonu
+
+
+    /* -------- SONUÇLARI GÖSTERME FONKSİYONU -------- */
+    function displayBattleResults(resultsData) {
+         console.log("displayBattleResults çağrıldı. Veri:", resultsData);
+         if (!resultsData || !resultsData.participants || !battleResultsArea) {
+             console.error("Sonuç verisi eksik veya sonuç alanı bulunamadı.");
+             // Hata mesajı gösterilebilir
+             resultsParticipantCards.innerHTML = '<p class="text-danger col-12">Savaş sonuçları yüklenemedi.</p>';
+             return;
+         }
+         currentBattleStatus = resultsData.battle_status || 'FINISHED'; // Durumu güncelle
+         currentUnboxingResults = resultsData; // Sonuçları cache'le (replay için)
+
+         // Toplam değeri göster
+         if(resultsTotalValue) resultsTotalValue.textContent = (resultsData.total_battle_value || 0.00).toFixed(2);
+
+         // Kazanan bilgisini oluştur
+         if (resultsWinnerInfo) {
+             resultsWinnerInfo.innerHTML = ''; // Temizle
+             const winners = resultsData.participants.filter(p => p.is_winner && !p.is_bot);
+             if (resultsData.mode === 'SHARED') {
+                 const realParticipantCount = resultsData.participants.filter(p => !p.is_bot).length;
+                 if (realParticipantCount > 0 && resultsData.total_battle_value > 0) {
+                     try {
+                         const valuePer = (resultsData.total_battle_value / realParticipantCount).toFixed(2);
+                         resultsWinnerInfo.innerHTML = `<p class="text-info mb-0">Ortak Mod: Her gerçek katılımcı ~${valuePer}₺ bakiye kazandı.</p>`;
+                     } catch (e) {
+                          resultsWinnerInfo.innerHTML = `<p class="text-info mb-0">Ortak Mod: Değer paylaşıldı.</p>`;
+                     }
+                 } else {
+                      resultsWinnerInfo.innerHTML = `<p class="text-muted mb-0">Ortak Mod: Paylaşılacak değer veya katılımcı yok.</p>`;
+                 }
+             } else if (winners.length === 1) {
+                 resultsWinnerInfo.innerHTML = `<h5 class="mb-0">Kazanan: <span class="badge bg-success fs-6 mx-1">${winners[0].name}</span></h5>`;
+             } else if (winners.length > 1) {
+                 resultsWinnerInfo.innerHTML = `<h5 class="mb-0">Beraberlik! Kazananlar: ${winners.map(w => `<span class="badge bg-success fs-6 mx-1">${w.name}</span>`).join(' ')}</h5>`;
+             } else {
+                  const botWinner = resultsData.participants.find(p => p.is_winner && p.is_bot);
+                  if (botWinner) {
+                      resultsWinnerInfo.innerHTML = `<h5 class="text-muted mb-0">Kazanan: ${botWinner.name} (Bot)</h5>`;
+                  } else {
+                     resultsWinnerInfo.innerHTML = `<h5 class="text-muted mb-0">Kazanan Yok / Belirlenemedi</h5>`;
+                  }
+             }
+         }
+
+        // Katılımcı kartlarını oluştur
+        if (resultsParticipantCards) {
+            resultsParticipantCards.innerHTML = ''; // Temizle
+            resultsData.participants.forEach(p => {
+                const cardCol = document.createElement('div');
+                // Sütun genişliğini dinamik al
+                cardCol.className = `col-lg-${colLgClassValue} mb-3`;
+
+                const card = document.createElement('div');
+                card.className = 'card participant-result-card h-100';
+                if (p.is_winner && resultsData.mode !== 'SHARED') card.classList.add('winner-card');
+                if (p.is_bot) card.classList.add('bot-card');
+
+                const cardHeader = document.createElement('div');
+                cardHeader.className = 'card-header';
+                cardHeader.innerHTML = `
+                    <span>${p.name}</span>
+                    <span class="badge ${p.is_winner && resultsData.mode !== 'SHARED' ? 'bg-warning text-dark' : (resultsData.mode === 'SHARED' && !p.is_bot ? 'bg-info text-dark' : 'bg-light text-dark')}">${(p.total_value || 0.00).toFixed(2)} ₺</span>
+                `;
+
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                const itemGrid = document.createElement('div');
+                itemGrid.className = 'unboxed-item-grid';
+
+                if (p.unboxings && p.unboxings.length > 0) {
+                    p.unboxings.forEach(item => {
+                        const itemDisplay = document.createElement('div');
+                        itemDisplay.className = 'unboxed-item-display';
+                        const itemValue = parseFloat(item.value || 0).toFixed(2); // Değeri al ve formatla
+                        itemDisplay.title = `${item.name} (${itemValue}₺)`;
+
+                        const rarityIndicator = document.createElement('div');
+                        rarityIndicator.className = 'rarity-indicator';
+                        rarityIndicator.style.backgroundColor = item.rarity_color || '#FFFFFF';
+
+                        const img = document.createElement('img');
+                        img.src = item.image_url || placeholderImageUrl;
+                        img.alt = item.name;
+
+                        const valueTooltip = document.createElement('span');
+                        valueTooltip.className = 'item-value-tooltip';
+                        valueTooltip.textContent = `${itemValue}₺`;
+
+                        itemDisplay.appendChild(rarityIndicator);
+                        itemDisplay.appendChild(img);
+                        itemDisplay.appendChild(valueTooltip);
+                        itemGrid.appendChild(itemDisplay);
+                    });
+                } else {
+                    itemGrid.innerHTML = '<p class="text-muted small w-100 m-0 text-start">Eşya açılmadı.</p>'; // Sola yaslı
+                }
+
+                cardBody.appendChild(itemGrid);
+                card.appendChild(cardHeader);
+                card.appendChild(cardBody);
+                cardCol.appendChild(card);
+                resultsParticipantCards.appendChild(cardCol);
+            });
+        }
+
+         // Son olarak UI'ı güncelle (sonuçları göster, diğerlerini gizle)
+         updateUIBasedOnState();
     }
 
 
-    /* ANİMASYONU OYNATAN FONKSİYON */
+    /* -------- ANA ANİMASYON OYNATMA FONKSİYONU -------- */
     function playBattleAnimation(unboxingResultsData) {
-         if (isAnimating || !battleAnimationArea || !battleResultsArea || !battleStatusDisplay || !participantReelsContainer || !unboxingResultsData || Object.keys(unboxingResultsData).length === 0) { console.warn("Animasyon başlatılamadı."); resetInitialState(); return Promise.reject("Element/veri eksik"); }
-         isAnimating = true; console.log("playBattleAnimation: Animasyonlar başlıyor...");
-         if(battleStatusDisplay) battleStatusDisplay.style.display = 'none'; if(battleResultsArea) battleResultsArea.style.display = 'none'; if(battleAnimationArea) battleAnimationArea.style.display = 'block';
-         if (participantReelsContainer) participantReelsContainer.innerHTML = ''; else { return Promise.reject("Container yok");}
-         if(battleAnimationStatus) battleAnimationStatus.textContent = "Açılışlar...";
+         console.log("playBattleAnimation çağrıldı. Veri:", unboxingResultsData);
+         if (isAnimating) { console.warn("Animasyon zaten चल रहा है."); return Promise.reject("Animasyon zaten चल रहा है."); }
+         if (!battleAnimationArea || !battleResultsArea || !battleStatusDisplay || !participantReelsContainer || !unboxingResultsData || Object.keys(unboxingResultsData).length === 0) {
+             console.error("Animasyon başlatılamadı - Element/veri eksik veya geçersiz.", {battleAnimationArea, battleResultsArea, battleStatusDisplay, participantReelsContainer, unboxingResultsData});
+             // Hata durumunda UI'ı sıfırla veya hata mesajı göster
+             isAnimating = false; // Flag'i sıfırla
+             updateUIBasedOnState(); // UI'ı mevcut duruma getir
+             return Promise.reject("Element/veri eksik");
+         }
 
-         const participantsArray = Object.keys(unboxingResultsData).map(pIdStr => { const pDataElement = document.querySelector(`.unboxing-data-storage[data-participant-id="${pIdStr}"]`); const pName = pDataElement?.dataset.participantName || `Katılımcı ${pIdStr}`; const pIsBot = pDataElement?.dataset.isBot === 'true'; return { id: parseInt(pIdStr), name: pName, is_bot: pIsBot, unboxings: unboxingResultsData[pIdStr] || [] }; });
+         isAnimating = true;
+         console.log("Animasyonlar başlıyor...");
 
-        const animationPromises = participantsArray.map(p => {
-            const container = document.createElement('div'); container.className = `participant-reel-container col-md-6 col-lg-${colLgClassValue}`; const nameHeader = document.createElement('h6'); nameHeader.textContent = p.name; if(p.is_bot) nameHeader.classList.add('text-muted','fst-italic'); container.appendChild(nameHeader); const viewport = document.createElement('div'); viewport.className = 'reel-container participant-reel-viewport'; viewport.id = `reel-viewport-${p.id}`; const marker = document.createElement('div'); marker.className = 'marker'; viewport.appendChild(marker); const reel = document.createElement('div'); reel.className = 'reel participant-reel'; reel.id = `reel-${p.id}`; viewport.appendChild(reel); container.appendChild(viewport); if(participantReelsContainer) participantReelsContainer.appendChild(container);
-            let targetStopItem = p.unboxings.length > 0 ? p.unboxings.reduce((max, skin) => parseFloat(skin.value||0) > parseFloat(max.value||0) ? skin : max, {value: -1}) : null; if (targetStopItem?.value === -1) targetStopItem = null;
-            return runBattleReelAnimation(viewport, allPossibleSkinsFromCases, p.unboxings, targetStopItem);
-        });
+         // UI Hazırlığı
+         battleStatusDisplay.style.display = 'none';
+         battleResultsArea.style.display = 'none';
+         battleAnimationArea.style.display = 'block'; // Animasyon alanını göster
+         participantReelsContainer.innerHTML = ''; // Önceki reelleri temizle
+         if(battleAnimationStatus) battleAnimationStatus.textContent = "Açılışlar Başlıyor...";
 
+         // Katılımcı verisini unboxingResultsData'dan alıp reel oluşturma
+         const animationPromises = [];
+         const participantElements = participantList.querySelectorAll('li[data-participant-id]');
+
+         if (participantElements.length === 0 && Object.keys(unboxingResultsData).length > 0) {
+              console.warn("Katılımcı listesi elementi bulunamadı ama unboxing verisi var. Veri ID'leri üzerinden devam ediliyor.");
+               Object.keys(unboxingResultsData).forEach(pIdStr => {
+                    const pId = parseInt(pIdStr);
+                    const pUnboxings = unboxingResultsData[pIdStr] || [];
+                    const pName = `Katılımcı ${pId}`; // Varsayılan isim
+                    const pIsBot = false; // Varsayım
+
+                    const container = document.createElement('div');
+                    container.className = `participant-reel-container col-md-6 col-lg-${colLgClassValue}`;
+                    const nameHeader = document.createElement('h6');
+                    nameHeader.textContent = pName;
+                    if(pIsBot) nameHeader.classList.add('text-muted','fst-italic');
+                    container.appendChild(nameHeader);
+
+                    const viewport = document.createElement('div');
+                    viewport.className = 'reel-container participant-reel-viewport';
+                    viewport.id = `reel-viewport-${pId}`;
+                    const marker = document.createElement('div'); marker.className = 'marker'; viewport.appendChild(marker);
+                    const reel = document.createElement('div'); reel.className = 'reel participant-reel'; reel.id = `reel-${pId}`; viewport.appendChild(reel);
+                    container.appendChild(viewport);
+                    participantReelsContainer.appendChild(container);
+
+                    let targetStopItem = pUnboxings.length > 0 ? pUnboxings.reduce((max, skin) => (skin && max && parseFloat(skin.value||0) > parseFloat(max.value||0)) ? skin : max, {value: -1}) : null;
+                    if (!targetStopItem || targetStopItem.value <= 0) targetStopItem = pUnboxings.length > 0 ? pUnboxings[0] : null;
+
+                    animationPromises.push(runBattleReelAnimation(viewport, allPossibleSkinsFromCases, pUnboxings, targetStopItem));
+               });
+
+         } else {
+              participantElements.forEach(pElement => {
+                 const pId = parseInt(pElement.dataset.participantId);
+                 const pName = pElement.textContent.trim().split('(')[0].trim();
+                 const pIsBot = pElement.classList.contains('fst-italic');
+                 const pUnboxings = unboxingResultsData[pId.toString()] || [];
+
+                 console.log(`Reel oluşturuluyor: ID=${pId}, İsim=${pName}, Bot=${pIsBot}, Açılan=${pUnboxings.length}`);
+
+                 const container = document.createElement('div');
+                 container.className = `participant-reel-container col-md-6 col-lg-${colLgClassValue}`;
+                 const nameHeader = document.createElement('h6');
+                 nameHeader.textContent = pName;
+                 if(pIsBot) nameHeader.classList.add('text-muted','fst-italic');
+                 container.appendChild(nameHeader);
+
+                 const viewport = document.createElement('div');
+                 viewport.className = 'reel-container participant-reel-viewport';
+                 viewport.id = `reel-viewport-${pId}`;
+                 const marker = document.createElement('div'); marker.className = 'marker'; viewport.appendChild(marker);
+                 const reel = document.createElement('div'); reel.className = 'reel participant-reel'; reel.id = `reel-${pId}`; viewport.appendChild(reel);
+                 container.appendChild(viewport);
+                 participantReelsContainer.appendChild(container);
+
+                 let targetStopItem = pUnboxings.length > 0 ? pUnboxings.reduce((max, skin) => (skin && max && parseFloat(skin.value||0) > parseFloat(max.value||0)) ? skin : max, {value: -1}) : null;
+                 if (!targetStopItem || targetStopItem.value <= 0) targetStopItem = pUnboxings.length > 0 ? pUnboxings[0] : null;
+
+                 animationPromises.push(runBattleReelAnimation(viewport, allPossibleSkinsFromCases, pUnboxings, targetStopItem));
+             });
+         }
+
+
+        if(battleAnimationStatus) battleAnimationStatus.textContent = "Kasalar Açılıyor...";
+
+        // Tüm animasyonların bitmesini bekle
         return Promise.all(animationPromises).then(() => {
              console.log("Tüm savaş animasyonları bitti.");
              if(battleAnimationStatus) battleAnimationStatus.textContent = "Açılışlar Tamamlandı!";
-             /* Animasyon bitti, durumu FINISHED yapıp sonuçları göster */
-             currentBattleStatus = 'FINISHED';
-             resetInitialState();
+             // Kısa bir gecikme sonrası sonuçları göster
+             setTimeout(() => {
+                  isAnimating = false;
+                  if (currentUnboxingResults) {
+                     displayBattleResults(currentUnboxingResults);
+                  } else {
+                      console.warn("Animasyon bitti ancak gösterilecek sonuç verisi bulunamadı.");
+                       updateUIBasedOnState();
+                  }
+             }, 500); // 0.5 saniye bekle
+        }).catch(error => {
+             console.error("Animasyon sırasında hata oluştu:", error);
+             if(battleAnimationStatus) battleAnimationStatus.textContent = "Animasyon Hatası!";
+             isAnimating = false;
+             updateUIBasedOnState();
+              showStatusMessage(startBattleStatus || addBotStatus, `Animasyon hatası: ${error}`, 'danger'); // Durum mesajını göster
+             return Promise.reject(error);
         });
     } /* playBattleAnimation sonu */
 
 
-    /* Bot Ekleme Mantığı */
+    /* -------- EVENT LISTENERS -------- */
+
+    // Bot Ekle Butonu
     if (addBotButton) {
         addBotButton.addEventListener('click', () => {
-            if (isAnimating) return; addBotButton.disabled = true; if(addBotStatus) { addBotStatus.textContent = 'Bot ekleniyor...'; addBotStatus.className = 'small text-info text-center mb-2';}
-            fetch(addBotUrl, { method: 'POST', headers: { 'X-CSRFToken': csrfTokenBattle, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, })
-            .then(response => response.json()).then(data => {
-                 console.log("Bot ekleme AJAX yanıtı:", data);
-                if (data.success) {
-                    if(addBotStatus) {addBotStatus.textContent = data.message; addBotStatus.className = 'small text-success text-center mb-2';}
-                    if(participantCountSpan) participantCountSpan.textContent = data.participant_count;
-                    const newBotLi = document.createElement('li'); newBotLi.className = 'list-group-item text-muted fst-italic'; newBotLi.textContent = `Bot ${data.participant_count}`; if(participantList){ const noP = participantList.querySelector('li:not(.fst-italic)'); if(noP && participantList.children.length === 1 && noP.textContent.includes('yok')){noP.remove();} participantList.appendChild(newBotLi); }
-                    if(data.is_full){
-                        if(addBotButton) addBotButton.style.display = 'none';
-                        /* Savaş dolduğunda başlat butonunu göster/etkinleştir */
-                        if(startBattleButton) { startBattleButton.disabled = false; startBattleButton.style.display = 'block'; }
-                        if(addBotStatus) { addBotStatus.textContent = data.message; /* Backend mesajını kullan */ addBotStatus.className = 'small text-info text-center mb-2';}
-                    } else { if(addBotButton) addBotButton.disabled = false; }
-                } else { if(addBotStatus) {addBotStatus.textContent = 'Hata: '+data.error; addBotStatus.className = 'small text-danger text-center mb-2';} if(addBotButton) addBotButton.disabled = false;}
-            }).catch(error => { console.error('Bot ekleme fetch hatası:', error); if(addBotStatus) {addBotStatus.textContent = 'Sunucu hatası.'; addBotStatus.className = 'small text-danger text-center mb-2';} if(addBotButton) addBotButton.disabled = false; });
-        });
-    }
+            console.log("Bot Ekle butonuna tıklandı.");
+            if (isRequestPending || isAnimating) {
+                console.warn("İstek zaten beklemede veya animasyon चल रहा है.");
+                return;
+            }
+            isRequestPending = true;
+            setButtonState(addBotButton, false); // Butonu hemen disable et
+            showSpinner(addBotSpinner, true);
+            showStatusMessage(addBotStatus, 'Bot ekleniyor...', 'info');
 
-    /* Savaşı Başlat Butonu Mantığı */
+            fetch(addBotUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfTokenBattle,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error(`Bot ekleme HTTP hatası: ${response.status} ${response.statusText}`);
+                     return response.json().catch(() => ({ error: `Sunucu hatası (${response.status})` })).then(errData => {
+                         throw new Error(errData.error || `Sunucu hatası (${response.status})`);
+                     });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Bot ekleme AJAX yanıtı:", data);
+                if (data.success) {
+                    showStatusMessage(addBotStatus, data.message, 'success');
+                    if(participantCountSpan) participantCountSpan.textContent = data.participant_count;
+
+                    if (participantList && data.new_participant_name) {
+                         if(noParticipantsMessage) noParticipantsMessage.style.display = 'none';
+                        const newBotLi = document.createElement('li');
+                        newBotLi.className = 'list-group-item text-muted fst-italic';
+                        newBotLi.dataset.participantId = data.new_participant_id;
+                        newBotLi.textContent = data.new_participant_name;
+                        participantList.appendChild(newBotLi);
+                    }
+                    isRequestPending = false;
+                    updateUIBasedOnState();
+                } else {
+                     throw new Error(data.error || 'Bot eklenemedi.');
+                }
+            })
+            .catch(error => {
+                console.error('Bot ekleme fetch hatası:', error);
+                showStatusMessage(addBotStatus, `Hata: ${error.message}`, 'danger');
+                 isRequestPending = false;
+                 updateUIBasedOnState();
+            });
+        });
+    } else { console.warn("Bot Ekle butonu bulunamadı."); }
+
+
+    // Savaşı Başlat Butonu
     if (startBattleButton) {
          startBattleButton.addEventListener('click', () => {
-             if (isAnimating) return; startBattleButton.disabled = true; if(startBattleStatus) { startBattleStatus.textContent = 'Savaş başlatılıyor...'; startBattleStatus.className = 'small text-warning text-center mb-2'; }
-             fetch(startBattleUrl, { method: 'POST', headers: { 'X-CSRFToken': csrfTokenBattle, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, })
-             .then(response => response.json())
+             console.log("Savaşı Başlat butonuna tıklandı.");
+             if (isRequestPending || isAnimating) {
+                 console.warn("İstek zaten beklemede veya animasyon चल रहा है.");
+                 return;
+             }
+             isRequestPending = true;
+             setButtonState(startBattleButton, false);
+             showSpinner(startBattleSpinner, true);
+             showStatusMessage(startBattleStatus, 'Savaş başlatılıyor...', 'warning');
+
+             fetch(startBattleUrl, {
+                 method: 'POST',
+                 headers: {
+                     'X-CSRFToken': csrfTokenBattle,
+                     'Content-Type': 'application/json',
+                     'X-Requested-With': 'XMLHttpRequest'
+                 },
+             })
+             .then(response => {
+                  if (!response.ok) {
+                    console.error(`Savaş başlatma HTTP hatası: ${response.status} ${response.statusText}`);
+                     return response.json().catch(() => ({ error: `Sunucu hatası (${response.status})` })).then(errData => {
+                         throw new Error(errData.error || `Sunucu hatası (${response.status})`);
+                     });
+                  }
+                  return response.json();
+              })
              .then(data => {
                  console.log("Savaş başlatma AJAX yanıtı:", data);
-                 if(data.success && data.battle_status === 'FINISHED' && data.unboxing_results) {
-                      currentBattleStatus = data.battle_status; /* Durumu FINISHED yap */
-                      currentUnboxingResults = data.unboxing_results;
-                      if (startBattleStatus) startBattleStatus.textContent = 'Animasyon başlıyor...';
-                      playBattleAnimation(currentUnboxingResults).then(() => {
-                           console.log("Başlatma sonrası animasyon bitti.");
-                           /* resetInitialState zaten FINISHED durumu için sonuçları gösterir */
-                           if(startBattleStatus) startBattleStatus.textContent = '';
-                      }).catch(err => { console.error("Başlatma sonrası animasyon hatası:", err); resetInitialState(); if(startBattleStatus) {startBattleStatus.textContent = 'Animasyon hatası!';} });
-                 } else { console.error("Savaş başlatılamadı:", data.error, " Gelen Durum:", data.battle_status); if(startBattleStatus) { startBattleStatus.textContent = `Hata: ${data.error || 'Bilinmeyen'}`; } if(startBattleButton) startBattleButton.disabled = false; currentBattleStatus = data.battle_status || 'ERROR'; resetInitialState(); }
-             })
-             .catch(error => { console.error("Savaş başlatma fetch hatası:", error); if(startBattleStatus) { startBattleStatus.textContent = 'Sunucu hatası!'; } if(startBattleButton) startBattleButton.disabled = false; resetInitialState(); });
-         });
-    }
+                 isRequestPending = false;
+                 showSpinner(startBattleSpinner, false);
 
-    /* Sayfa Yüklendiğinde Başlangıç Durumu */
-    resetInitialState();
+                 if (data.success && data.battle_status === 'FINISHED' && data.unboxing_results) {
+                      showStatusMessage(startBattleStatus, 'Savaş başladı, animasyon hazırlanıyor...', 'info');
+                      currentBattleStatus = data.battle_status;
+                      currentUnboxingResults = data.unboxing_results;
+                      playBattleAnimation(currentUnboxingResults)
+                          .then(() => {
+                               console.log("Başlatma sonrası animasyon başarıyla tamamlandı.");
+                               showStatusMessage(startBattleStatus, '', 'info');
+                          })
+                          .catch(err => {
+                               console.error("Başlatma sonrası animasyon zincirinde hata:", err);
+                               updateUIBasedOnState();
+                          });
+                 } else {
+                       currentBattleStatus = data.battle_status || 'ERROR';
+                       updateUIBasedOnState();
+                       throw new Error(data.error || 'Savaş başlatılamadı veya beklenmeyen bir durum oluştu.');
+                 }
+             })
+             .catch(error => {
+                 console.error("Savaş başlatma fetch hatası:", error);
+                 showStatusMessage(startBattleStatus, `Hata: ${error.message}`, 'danger');
+                 isRequestPending = false;
+                 updateUIBasedOnState();
+             });
+         });
+    } else { console.warn("Savaşı Başlat butonu bulunamadı."); }
+
+    // Replay Butonu
+    if (replayButton) {
+         replayButton.addEventListener('click', () => {
+              console.log("Replay butonuna tıklandı.");
+              if (isAnimating || !currentUnboxingResults) {
+                   console.warn("Animasyon चल रहा है veya tekrar oynatılacak veri yok.");
+                   return;
+              }
+              console.log("Animasyon tekrar başlatılıyor...");
+              playBattleAnimation(currentUnboxingResults)
+                  .catch(err => console.error("Tekrar oynatma sırasında animasyon hatası:", err));
+         });
+    } else { console.warn("Replay butonu bulunamadı."); }
+
+
+    /* -------- İlk Yükleme -------- */
+    if (loadInitialData()) { // Veriler başarıyla yüklendiyse
+        updateUIBasedOnState(); // Arayüzü başlangıç durumuna göre ayarla
+
+        // Eğer sayfa yüklendiğinde savaş zaten bitmişse, sonuçları doğrudan göster
+        if (currentBattleStatus === 'FINISHED' && !isAnimating) {
+             console.log("Sayfa yüklendiğinde savaş zaten bitmiş. Sonuçlar çekiliyor...");
+              isRequestPending = true; // Sonuçları çekerken butonlar pasif kalsın
+              updateUIBasedOnState(); // Butonları pasif yap
+             fetch(getResultsUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                 .then(response => response.ok ? response.json() : Promise.reject('Sonuçlar alınamadı'))
+                 .then(data => {
+                     if (data.success) {
+                         displayBattleResults(data); // API'den gelen sonuçları işle
+                     } else {
+                         console.error("Biten savaşın sonuçları API'den alınamadı:", data.error);
+                          resultsParticipantCards.innerHTML = '<p class="text-danger col-12">Savaş sonuçları yüklenemedi.</p>';
+                     }
+                 })
+                 .catch(error => {
+                     console.error("Biten savaş sonuçları fetch hatası:", error);
+                      resultsParticipantCards.innerHTML = '<p class="text-danger col-12">Savaş sonuçları yüklenirken hata oluştu.</p>';
+                 })
+                 .finally(() => {
+                      isRequestPending = false;
+                      updateUIBasedOnState(); // UI'ı son duruma göre ayarla (Replay butonu vs. aktif olabilir)
+                 });
+         }
+    }
 
 }); /* DOMContentLoaded sonu */
 </script>

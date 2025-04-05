@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %} {# Gerekirse diye eklendi #}
+
+{% block title %}Aktif Kasa Savaşları - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Aktif Kasa Savaşları</h1>
+    <a href="{% url 'create_battle' %}" class="btn btn-warning">Yeni Savaş Oluştur</a>
+</div>
+<hr>
+
+{% if battles %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th scope="col"># ID</th>
+                    <th scope="col">Oluşturan</th>
+                    <th scope="col">Mod</th>
+                    <th scope="col">Katılımcılar</th>
+                    <th scope="col">Kasalar</th>
+                    <th scope="col">Toplam Maliyet</th>
+                    <th scope="col">Durum</th>
+                    <th scope="col"></th> {# Buton için boşluk #}
+                </tr>
+            </thead>
+            <tbody>
+                {% for battle in battles %}
+                <tr>
+                    <th scope="row">{{ battle.id }}</th>
+                    <td>{{ battle.creator.user.username|default:"N/A" }}</td>
+                    <td>{{ battle.get_mode_display }}</td>
+                    <td>{{ battle.get_participant_count }}/{{ battle.max_participants }}</td>
+                    <td>
+                        {# Kasaları listele (ilk birkaçını göster) #}
+                        {% for case in battle.cases.all|slice:":3" %}
+                            <span class="badge bg-secondary me-1">{{ case.name }}</span>
+                        {% endfor %}
+                        {% if battle.cases.count > 3 %}...{% endif %}
+                    </td>
+                    <td>{{ battle.get_total_cost|stringformat:".2f" }} ₺</td>
+                    <td><span class="badge bg-info">{{ battle.get_status_display }}</span></td>
+                    <td>
+                        <a href="{% url 'battle_detail' battle.id %}" class="btn btn-sm btn-primary">
+                            {% if battle.is_joinable %}Katıl / {% endif %}Görüntüle
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info" role="alert">
+      Şu anda aktif katılım beklenecek bir savaş bulunmuyor. İlk savaşı sen oluştur!
+    </div>
+{% endif %}
+
+{% endblock %}

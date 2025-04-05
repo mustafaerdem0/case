@@ -29,8 +29,8 @@ urlpatterns = [
     path('ajax/calculate_upgrade/', views.calculate_upgrade_ajax, name='calculate_upgrade_ajax'),
     path('ajax/perform_upgrade/', views.perform_upgrade_ajax, name='perform_upgrade_ajax'),
     path('ajax/battle_results/<int:battle_id>/', views.get_battle_results_ajax, name='get_battle_results_ajax'),
-    path('ajax/finalize_battle/<int:battle_id>/', views.finalize_battle_ajax, name='finalize_battle_ajax'),
     # --- YENİ: Bot Ekleme AJAX URL ---
+    path('ajax/start_battle/<int:battle_id>/', views.start_battle_ajax, name='start_battle_ajax'),
 
     path('ajax/add_bot/<int:battle_id>/', views.add_bot_to_battle_ajax, name='add_bot_to_battle_ajax'),
     # --- --- --- --- --- --- --- --- ---

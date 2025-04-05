@@ -48,7 +48,7 @@ def case_detail(request, case_id):
         'ajax_open_url': ajax_open_url,
         'placeholder_img_url': placeholder_img_url, # Placeholder'ı context'e ekle
     }
-    return render(request, 'kasa-ac.html', context)
+    return render(request, 'kasa_ac.html', context)
 
 @login_required
 def profile(request):

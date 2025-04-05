@@ -6,9 +6,7 @@
 {% block extra_head %}
 <style>
     /* Önceki CSS stilleri aynı kalır */
-    /* Genel */
     body { font-family: 'Inter', sans-serif; }
-    /* Sonuç Kartları Stilleri */
     .participant-result-card { margin-bottom: 1rem; background-color: #2c3034; }
     .participant-result-card .card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; padding: 0.5rem 1rem; border-bottom: 1px solid #444; }
     .participant-result-card .card-body { background-color: transparent; padding: 0.75rem; min-height: 80px; }
@@ -20,7 +18,6 @@
     .unboxed-item-display img { display: block; width: 100%; height: 40px; object-fit: contain; margin-top: 4px; filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.4)); }
     .unboxed-item-display .item-value-tooltip { position: absolute; bottom: 2px; right: 2px; font-size: 0.6rem; background: rgba(0,0,0,0.7); color: #fff; padding: 1px 3px; border-radius: 2px; display: none; }
     .unboxed-item-display:hover .item-value-tooltip { display: block; }
-    /* Dikey Animasyon Stilleri */
     #battle-animation-area { display: none; background-color: transparent; border: none; box-shadow: none; padding: 0; }
     .participant-reel-container { margin-bottom: 1.5rem; }
     .participant-reel-container:last-child { margin-bottom: 0; }
@@ -31,54 +28,17 @@
     .item { width: 85%; max-width: 160px; height: 120px; margin: 5px 0; border-radius: 0.375rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: 0.75rem; font-weight: 500; background-color: rgba(26, 34, 56, 0.9); border: 1px solid rgba(76, 89, 119, 0.5); color: #adb5bd; flex-shrink: 0; position: relative; padding: 8px 5px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; border-left: 5px solid transparent; }
     .item img { max-width: 70%; max-height: 60%; object-fit: contain; margin-bottom: 5px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4)); }
     .item span { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; color: #e5e7eb; font-weight: 600; line-height: 1.2; }
-    .rarity-common { border-left-color: #b0c3d9; --rarity-color-glow: #b0c3d9;}
-    .rarity-uncommon { border-left-color: #5e98d9; --rarity-color-glow: #5e98d9;}
-    .rarity-rare { border-left-color: #4b69ff; --rarity-color-glow: #4b69ff;}
-    .rarity-mythical { border-left-color: #8847ff; --rarity-color-glow: #8847ff;}
-    .rarity-legendary { border-left-color: #d32ce6; --rarity-color-glow: #d32ce6;}
-    .rarity-ancient { border-left-color: #eb4b4b; --rarity-color-glow: #eb4b4b;}
-    .rarity-exceedinglyrare { border-left-color: #ffd700; --rarity-color-glow: #ffd700;}
-    .rarity-default { border-left-color: #6c757d; --rarity-color-glow: #6c757d;}
+    .rarity-common { border-left-color: #b0c3d9; --rarity-color-glow: #b0c3d9;} .rarity-uncommon { border-left-color: #5e98d9; --rarity-color-glow: #5e98d9;} .rarity-rare { border-left-color: #4b69ff; --rarity-color-glow: #4b69ff;} .rarity-mythical { border-left-color: #8847ff; --rarity-color-glow: #8847ff;} .rarity-legendary { border-left-color: #d32ce6; --rarity-color-glow: #d32ce6;} .rarity-ancient { border-left-color: #eb4b4b; --rarity-color-glow: #eb4b4b;} .rarity-exceedinglyrare { border-left-color: #ffd700; --rarity-color-glow: #ffd700;} .rarity-default { border-left-color: #6c757d; --rarity-color-glow: #6c757d;}
     .item.winner-item { box-shadow: 0 0 15px var(--rarity-color-glow, #ffffff), inset 0 0 10px rgba(var(--rarity-color-glow-rgb, 255,255,255), 0.1); transform: scale(1.03); border-color: var(--rarity-color-glow, #ffffff); }
     #battle-results-area, #battle-status-display, #battle-animation-area { display: none; }
     #battle-status-display .status-content { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 200px; }
 </style>
 {% endblock %}
 
-
 {% block content %}
-{# HTML İçeriği (Öncekiyle aynı, değişiklik yok) #}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Savaş Detayları <span class="badge bg-secondary">#{{ battle.id }}</span></h1>
-    <div> <a href="{% url 'active_battles_list' %}" class="btn btn-sm btn-outline-secondary">Aktif Savaşlara Dön</a> </div>
-</div> <hr>
-<div class="row">
-    <div class="col-md-8">
-        <div class="border rounded p-4 text-center bg-dark-subtle mb-4" style="min-height: 300px; display: flex; justify-content: center; align-items: center;" id="battle-main-area">
-             <div id="battle-status-display">
-                 <div class="status-content battle-waiting-content"> <h3 class="text-muted mb-3">Katılımcılar Bekleniyor...</h3> <p>Savaşın başlaması için {{ max_participants }} katılımcıya ulaşılması gerekiyor.</p> <div class="spinner-border text-warning" role="status"><span class="visually-hidden">Bekleniyor...</span></div> </div>
-                 <div class="status-content battle-starting-content"> <h3 class="text-warning mb-3">Savaş Başladı!</h3> <p>Kasalar açılıyor...</p> <div class="spinner-grow text-warning" role="status"><span class="visually-hidden">Açılıyor...</span></div> </div>
-                 <div class="status-content battle-other-content"> {% if battle.status == battle.BattleStatus.CANCELLED %} <h3 class="text-danger">Savaş İptal Edildi</h3> {% elif battle.status == battle.BattleStatus.ERROR %} <h3 class="text-danger">Savaş Sırasında Hata Oluştu</h3><p class="text-muted small">Yönetici ile iletişime geçin.</p> {% else %} <h3 class="text-info">Savaş Durumu: <span id="other-status-text">{{ battle.get_status_display }}</span></h3> {% endif %} </div>
-             </div>
-            <div id="battle-animation-area" class="w-100"> <h4 class="text-warning mb-4 text-center" id="battle-animation-status">Açılışlar...</h4> <div class="row g-3 justify-content-center" id="participant-reels-container"></div> </div>
-            <div id="battle-results-area" class="w-100"> <h3 class="text-success mb-3">Savaş Tamamlandı!</h3> <p class="mb-1">Toplam Açılan Değer: <strong id="results-total-value">0.00</strong> ₺</p> <div id="results-winner-info" class="mt-3"></div> <hr class="my-3"> <h6 class="mb-3">Açılan Eşyalar:</h6> <div class="row g-3" id="results-participant-cards"></div> <button id="replay-battle-button" class="btn btn-sm btn-outline-info mt-4" style="display: none;">Açılışları Tekrar İzle</button> </div>
-        </div>
-        <h4 class="mt-4">Savaştaki Kasalar ({{ battle.cases.count }}):</h4>
-         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2 mb-4"> {% for case in battle.cases.all %} <div class="col"> <div class="card card-sm text-center bg-secondary h-100"> <img src="{{ case.image_url|default:'/static/img/placeholder.png' }}" class="card-img-top p-1" alt="{{ case.name }}" style="height: 50px; object-fit: contain;"> <div class="card-body p-1 d-flex flex-column justify-content-center"> <small class="card-title text-white text-truncate d-block" style="font-size: 0.7rem; line-height: 1.2;" title="{{ case.name }}">{{ case.name }}</small> <small class="text-white-50 d-block">{{case.price|stringformat:".2f"}}₺</small> </div> </div> </div> {% empty %} <p class="text-muted col-12">Bu savaş için kasalar yüklenemedi.</p> {% endfor %} </div>
-    </div>
-    <div class="col-md-4">
-        <h4>Savaş Bilgileri</h4>
-        <ul class="list-group mb-3"> <li class="list-group-item d-flex justify-content-between align-items-center"> Durum: <span id="battle-status-badge" class="badge {% if battle.status == battle.BattleStatus.WAITING %}bg-info{% elif battle.status == battle.BattleStatus.STARTING %}bg-warning text-dark{% elif battle.status == battle.BattleStatus.FINISHED %}bg-success{% elif battle.status == battle.BattleStatus.CANCELLED or battle.status == battle.BattleStatus.ERROR %}bg-danger{% else %}bg-secondary{% endif %}">{{ battle.get_status_display }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Mod: <span>{{ battle.get_mode_display }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Maliyet: <span>{{ battle.get_total_cost|stringformat:".2f" }} ₺</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturan: <span>{{ battle.creator.user.username|default:"N/A" }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturulma: <span title="{{ battle.created_at }}">{{ battle.created_at|date:"d.m.Y H:i" }}</span></li> {% if battle.started_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Başlama: <span title="{{ battle.started_at }}">{{ battle.started_at|date:"d.m.Y H:i" }}</span></li> {% endif %} {% if battle.finished_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Bitiş: <span title="{{ battle.finished_at }}">{{ battle.finished_at|date:"d.m.Y H:i" }}</span></li> {% endif %} </ul>
-        <h4>Katılımcılar (<span id="participant-count">{{ battle.get_participant_count }}</span>/{{ max_participants }})</h4>
-        <ul class="list-group mb-3" id="participant-list"> {% for p in battle.participants.all %} <li class="list-group-item {% if p.is_winner and battle.mode != battle.BattleMode.SHARED %}list-group-item-success{% endif %} {% if p.is_bot %}text-muted fst-italic{% endif %}" data-participant-id="{{ p.id }}"> {{ p.get_display_name }} {% if battle.status == battle.BattleStatus.FINISHED and not p.is_bot %} <small class="text-muted float-end">({{ p.total_unboxed_value|stringformat:".2f" }}₺)</small> {% endif %} </li> {% empty %} <li class="list-group-item text-muted" id="no-participants-message">Henüz katılımcı yok.</li> {% endfor %} </ul>
-        {% if user.is_authenticated %}
-             <button id="start-battle-button" class="btn btn-lg btn-warning w-100 mb-2" style="display: {% if can_start_battle %}block{% else %}none{% endif %};"> <span class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span> Savaşı Başlat! </button> <div id="start-battle-status" class="small text-center mb-2"></div>
-             <button id="add-bot-button" class="btn btn-sm btn-outline-secondary w-100 mb-2" style="display: {% if can_add_bot %}block{% else %}none{% endif %};"> <span class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span> Bot Ekle </button> <div id="add-bot-status" class="small text-center mb-2"></div>
-             {% if can_join %} <form method="post" action=""> {% csrf_token %} <button type="submit" class="btn btn-success w-100" disabled title="Katılma özelliği henüz aktif değil."> {{ battle.get_total_cost|stringformat:".2f" }} ₺ ile Savaşa Katıl (Pasif) </button> </form> {% elif is_participant and battle.status == battle.BattleStatus.WAITING %} <p class="text-success text-center">Bu savaşa zaten katıldın.</p> {% elif not is_participant and battle.status != battle.BattleStatus.WAITING %} <p class="text-muted text-center">Bu savaş artık katılım için uygun değil.</p> {% elif battle.get_participant_count >= max_participants and battle.status == battle.BattleStatus.WAITING %} <p class="text-info text-center">Savaş dolu, başlatılması bekleniyor.</p> {% endif %}
-        {% else %} <a href="{% provider_login_url 'steam' next=request.path %}" class="btn btn-primary w-100">Savaşa Katılmak İçin Steam ile Giriş Yap</a> {% endif %}
-    </div>
-</div>
-{# Gizli veri depolama alanı #}
+{# HTML İçeriği (Değişiklik Yok) #}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1>Savaş Detayları <span class="badge bg-secondary">#{{ battle.id }}</span></h1><div> <a href="{% url 'active_battles_list' %}" class="btn btn-sm btn-outline-secondary">Aktif Savaşlara Dön</a> </div></div><hr>
+<div class="row"><div class="col-md-8"><div class="border rounded p-4 text-center bg-dark-subtle mb-4" style="min-height: 300px; display: flex; justify-content: center; align-items: center;" id="battle-main-area"> <div id="battle-status-display"> <div class="status-content battle-waiting-content"> <h3 class="text-muted mb-3">Katılımcılar Bekleniyor...</h3> <p>Savaşın başlaması için {{ max_participants }} katılımcıya ulaşılması gerekiyor.</p> <div class="spinner-border text-warning" role="status"><span class="visually-hidden">Bekleniyor...</span></div> </div> <div class="status-content battle-starting-content"> <h3 class="text-warning mb-3">Savaş Başladı!</h3> <p>Kasalar açılıyor...</p> <div class="spinner-grow text-warning" role="status"><span class="visually-hidden">Açılıyor...</span></div> </div> <div class="status-content battle-other-content"> {% if battle.status == battle.BattleStatus.CANCELLED %} <h3 class="text-danger">Savaş İptal Edildi</h3> {% elif battle.status == battle.BattleStatus.ERROR %} <h3 class="text-danger">Savaş Sırasında Hata Oluştu</h3><p class="text-muted small">Yönetici ile iletişime geçin.</p> {% else %} <h3 class="text-info">Savaş Durumu: <span id="other-status-text">{{ battle.get_status_display }}</span></h3> {% endif %} </div> </div> <div id="battle-animation-area" class="w-100"> <h4 class="text-warning mb-4 text-center" id="battle-animation-status">Açılışlar...</h4> <div class="row g-3 justify-content-center" id="participant-reels-container"></div> </div> <div id="battle-results-area" class="w-100"> <h3 class="text-success mb-3">Savaş Tamamlandı!</h3> <p class="mb-1">Toplam Açılan Değer: <strong id="results-total-value">0.00</strong> ₺</p> <div id="results-winner-info" class="mt-3"></div> <hr class="my-3"> <h6 class="mb-3">Açılan Eşyalar:</h6> <div class="row g-3" id="results-participant-cards"></div> <button id="replay-battle-button" class="btn btn-sm btn-outline-info mt-4" style="display: none;">Açılışları Tekrar İzle</button> </div> </div> <h4 class="mt-4">Savaştaki Kasalar ({{ battle.cases.count }}):</h4> <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2 mb-4"> {% for case in battle.cases.all %} <div class="col"> <div class="card card-sm text-center bg-secondary h-100"> <img src="{{ case.image_url|default:'/static/img/placeholder.png' }}" class="card-img-top p-1" alt="{{ case.name }}" style="height: 50px; object-fit: contain;"> <div class="card-body p-1 d-flex flex-column justify-content-center"> <small class="card-title text-white text-truncate d-block" style="font-size: 0.7rem; line-height: 1.2;" title="{{ case.name }}">{{ case.name }}</small> <small class="text-white-50 d-block">{{case.price|stringformat:".2f"}}₺</small> </div> </div> </div> {% empty %} <p class="text-muted col-12">Bu savaş için kasalar yüklenemedi.</p> {% endfor %} </div> </div> <div class="col-md-4"> <h4>Savaş Bilgileri</h4> <ul class="list-group mb-3"> <li class="list-group-item d-flex justify-content-between align-items-center"> Durum: <span id="battle-status-badge" class="badge {% if battle.status == battle.BattleStatus.WAITING %}bg-info{% elif battle.status == battle.BattleStatus.STARTING %}bg-warning text-dark{% elif battle.status == battle.BattleStatus.FINISHED %}bg-success{% elif battle.status == battle.BattleStatus.CANCELLED or battle.status == battle.BattleStatus.ERROR %}bg-danger{% else %}bg-secondary{% endif %}">{{ battle.get_status_display }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Mod: <span>{{ battle.get_mode_display }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Maliyet: <span>{{ battle.get_total_cost|stringformat:".2f" }} ₺</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturan: <span>{{ battle.creator.user.username|default:"N/A" }}</span></li> <li class="list-group-item d-flex justify-content-between align-items-center">Oluşturulma: <span title="{{ battle.created_at }}">{{ battle.created_at|date:"d.m.Y H:i" }}</span></li> {% if battle.started_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Başlama: <span title="{{ battle.started_at }}">{{ battle.started_at|date:"d.m.Y H:i" }}</span></li> {% endif %} {% if battle.finished_at %} <li class="list-group-item d-flex justify-content-between align-items-center">Bitiş: <span title="{{ battle.finished_at }}">{{ battle.finished_at|date:"d.m.Y H:i" }}</span></li> {% endif %} </ul> <h4>Katılımcılar (<span id="participant-count">{{ battle.get_participant_count }}</span>/{{ max_participants }})</h4> <ul class="list-group mb-3" id="participant-list"> {% for p in battle.participants.all %} <li class="list-group-item {% if p.is_winner and battle.mode != battle.BattleMode.SHARED %}list-group-item-success{% endif %} {% if p.is_bot %}text-muted fst-italic{% endif %}" data-participant-id="{{ p.id }}"> {{ p.get_display_name }} {% if battle.status == battle.BattleStatus.FINISHED and not p.is_bot %} <small class="text-muted float-end">({{ p.total_unboxed_value|stringformat:".2f" }}₺)</small> {% endif %} </li> {% empty %} <li class="list-group-item text-muted" id="no-participants-message">Henüz katılımcı yok.</li> {% endfor %} </ul> {% if user.is_authenticated %} <button id="start-battle-button" class="btn btn-lg btn-warning w-100 mb-2" style="display: {% if can_start_battle %}block{% else %}none{% endif %};"> <span class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span> Savaşı Başlat! </button> <div id="start-battle-status" class="small text-center mb-2"></div> <button id="add-bot-button" class="btn btn-sm btn-outline-secondary w-100 mb-2" style="display: {% if can_add_bot %}block{% else %}none{% endif %};"> <span class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span> Bot Ekle </button> <div id="add-bot-status" class="small text-center mb-2"></div> {% if can_join %} <form method="post" action=""> {% csrf_token %} <button type="submit" class="btn btn-success w-100" disabled title="Katılma özelliği henüz aktif değil."> {{ battle.get_total_cost|stringformat:".2f" }} ₺ ile Savaşa Katıl (Pasif) </button> </form> {% elif is_participant and battle.status == battle.BattleStatus.WAITING %} <p class="text-success text-center">Bu savaşa zaten katıldın.</p> {% elif not is_participant and battle.status != battle.BattleStatus.WAITING %} <p class="text-muted text-center">Bu savaş artık katılım için uygun değil.</p> {% elif battle.get_participant_count >= max_participants and battle.status == battle.BattleStatus.WAITING %} <p class="text-info text-center">Savaş dolu, başlatılması bekleniyor.</p> {% endif %} {% else %} <a href="{% provider_login_url 'steam' next=request.path %}" class="btn btn-primary w-100">Savaşa Katılmak İçin Steam ile Giriş Yap</a> {% endif %} </div></div>
 <div id="battle-data" style="display:none;" data-battle-id="{{ battle.id }}" data-battle-status="{{ battle.status }}" data-is-creator="{{ is_creator|yesno:'true,false' }}" data-is-participant="{{ is_participant|yesno:'true,false' }}" data-max-participants="{{ max_participants }}" data-add-bot-url="{% url 'add_bot_to_battle_ajax' battle.id %}" data-start-battle-url="{% url 'start_battle_ajax' battle.id %}" data-get-results-url="{% url 'get_battle_results_ajax' battle.id %}" data-csrf-token="{{ csrf_token|default:'' }}" data-placeholder-image="{% static 'img/placeholder.png' %}"></div>
 {% endblock %}
 
@@ -114,219 +74,180 @@ document.addEventListener('DOMContentLoaded', () => {
     let battleId, currentBattleStatus, isCreator, isParticipant, maxParticipants;
     let addBotUrl, startBattleUrl, getResultsUrl, csrfTokenBattle, placeholderImageUrl;
     let allPossibleSkinsFromCases = [];
-    // --- DÜZELTME: Cached veriyi değiştirelim ---
-    // cachedAnimationItems yerine -> cachedAnimationData = { "id": { items: [...], target: {...} } }
-    let cachedAnimationData = null; // Hem item listesini hem de hedef item'ı tutacak
-    let cachedFullResults = null; // Tam sonuçları tutacak ({ participants: [...] })
-    // --- --- --- --- --- --- --- --- --- --- ---
+    // --- DÜZELTME: cachedAnimationData yapısı değişti ---
+    let cachedAnimationData = null; // { "id": { sequence: [...], winnerIndex: X } }
+    let cachedFullResults = null;   // { participants: [...] }
+    // --- --- --- --- --- --- --- --- --- --- --- ---
     let isAnimating = false;
     let isRequestPending = false;
 
-    function loadInitialData() {
-        console.log("loadInitialData çalışıyor...");
-        if (!battleDataElement) { console.error("Kritik Hata: #battle-data elementi bulunamadı!"); if(battleMainArea) battleMainArea.innerHTML = '<div class="alert alert-danger">Sayfa verileri yüklenemedi. Lütfen sayfayı yenileyin.</div>'; return false; }
-        try {
-            battleId = parseInt(battleDataElement.dataset.battleId);
-            currentBattleStatus = battleDataElement.dataset.battleStatus;
-            isCreator = battleDataElement.dataset.isCreator === 'true';
-            isParticipant = battleDataElement.dataset.isParticipant === 'true';
-            maxParticipants = parseInt(battleDataElement.dataset.maxParticipants);
-            addBotUrl = battleDataElement.dataset.addBotUrl;
-            startBattleUrl = battleDataElement.dataset.startBattleUrl;
-            getResultsUrl = battleDataElement.dataset.getResultsUrl;
-            csrfTokenBattle = battleDataElement.dataset.csrfToken;
-            placeholderImageUrl = battleDataElement.dataset.placeholderImage || '/static/img/placeholder.png';
-            console.log("Başlangıç Verileri:", { battleId, currentBattleStatus, isCreator, isParticipant, maxParticipants, csrfTokenBattle: csrfTokenBattle ? 'Var' : 'Yok' });
-
-            const possibleSkinsJsonRaw = '{{ possible_skins_json|escapejs }}';
-            try {
-                allPossibleSkinsFromCases = JSON.parse(possibleSkinsJsonRaw);
-                if (!Array.isArray(allPossibleSkinsFromCases)) { console.warn("Possible skins JSON bir array değil."); allPossibleSkinsFromCases = []; }
-                console.log(`Başlangıçta ${allPossibleSkinsFromCases.length} olası skin yüklendi.`);
-                if (allPossibleSkinsFromCases.length === 0) { console.warn("Hiç olası skin bulunamadı!"); allPossibleSkinsFromCases.push({id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}); }
-            } catch (e) { console.error("Olası skin JSON parse edilemedi:", e); allPossibleSkinsFromCases = [{id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}]; }
-            return true;
-        } catch (e) { console.error("Başlangıç verileri alınırken hata oluştu:", e); if(battleMainArea) battleMainArea.innerHTML = '<div class="alert alert-danger">Sayfa başlatılırken hata oluştu.</div>'; return false; }
+    function loadInitialData() { /* ... (Aynı kaldı) ... */
+        console.log("loadInitialData çalışıyor..."); if (!battleDataElement) { console.error("Kritik Hata: #battle-data elementi bulunamadı!"); if(battleMainArea) battleMainArea.innerHTML = '<div class="alert alert-danger">Sayfa verileri yüklenemedi. Lütfen sayfayı yenileyin.</div>'; return false; } try { battleId = parseInt(battleDataElement.dataset.battleId); currentBattleStatus = battleDataElement.dataset.battleStatus; isCreator = battleDataElement.dataset.isCreator === 'true'; isParticipant = battleDataElement.dataset.isParticipant === 'true'; maxParticipants = parseInt(battleDataElement.dataset.maxParticipants); addBotUrl = battleDataElement.dataset.addBotUrl; startBattleUrl = battleDataElement.dataset.startBattleUrl; getResultsUrl = battleDataElement.dataset.getResultsUrl; csrfTokenBattle = battleDataElement.dataset.csrfToken; placeholderImageUrl = battleDataElement.dataset.placeholderImage || '/static/img/placeholder.png'; console.log("Başlangıç Verileri:", { battleId, currentBattleStatus, isCreator, isParticipant, maxParticipants, csrfTokenBattle: csrfTokenBattle ? 'Var' : 'Yok' }); const possibleSkinsJsonRaw = '{{ possible_skins_json|escapejs }}'; try { allPossibleSkinsFromCases = JSON.parse(possibleSkinsJsonRaw); if (!Array.isArray(allPossibleSkinsFromCases)) { console.warn("Possible skins JSON bir array değil."); allPossibleSkinsFromCases = []; } console.log(`Başlangıçta ${allPossibleSkinsFromCases.length} olası skin yüklendi.`); if (allPossibleSkinsFromCases.length === 0) { console.warn("Hiç olası skin bulunamadı!"); allPossibleSkinsFromCases.push({id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}); } } catch (e) { console.error("Olası skin JSON parse edilemedi:", e); allPossibleSkinsFromCases = [{id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}]; } return true; } catch (e) { console.error("Başlangıç verileri alınırken hata oluştu:", e); if(battleMainArea) battleMainArea.innerHTML = '<div class="alert alert-danger">Sayfa başlatılırken hata oluştu.</div>'; return false; }
     }
 
     /* -------- YARDIMCI FONKSİYONLAR -------- */
-    function showSpinner(spinnerElement, show = true) { if (spinnerElement) spinnerElement.style.display = show ? 'inline-block' : 'none'; }
-    function setButtonState(buttonElement, enabled, text = null) {
-        if (buttonElement) {
-             buttonElement.disabled = !enabled;
-             if (text !== null) {
-                 const spinner = buttonElement.querySelector('.spinner-border');
-                 let textNode = null;
-                 for(let i=0; i<buttonElement.childNodes.length; i++){ if(buttonElement.childNodes[i].nodeType === Node.TEXT_NODE){ textNode = buttonElement.childNodes[i]; break; } }
-                 if(textNode) buttonElement.removeChild(textNode);
-                 buttonElement.appendChild(document.createTextNode(' ' + text));
-             }
-        }
-    }
-    function showStatusMessage(element, message, type = 'info') { if (element) { element.textContent = message; element.className = `small text-center mb-2 text-${type}`; } }
-    function updateUIBasedOnState() {
-        console.log(`updateUIBasedOnState çağrıldı. Durum: ${currentBattleStatus}, Animasyon: ${isAnimating}`);
-        const showStatus = !isAnimating && currentBattleStatus !== 'FINISHED';
-        const showAnimation = isAnimating;
-        const showResults = !isAnimating && currentBattleStatus === 'FINISHED';
+    function showSpinner(spinnerElement, show = true) { /* ... (Aynı kaldı) ... */ if (spinnerElement) spinnerElement.style.display = show ? 'inline-block' : 'none'; }
+    function setButtonState(buttonElement, enabled, text = null) { /* ... (Aynı kaldı) ... */ if (buttonElement) { buttonElement.disabled = !enabled; if (text !== null) { const spinner = buttonElement.querySelector('.spinner-border'); let textNode = null; for(let i=0; i<buttonElement.childNodes.length; i++){ if(buttonElement.childNodes[i].nodeType === Node.TEXT_NODE){ textNode = buttonElement.childNodes[i]; break; } } if(textNode) buttonElement.removeChild(textNode); buttonElement.appendChild(document.createTextNode(' ' + text)); } } }
+    function showStatusMessage(element, message, type = 'info') { /* ... (Aynı kaldı) ... */ if (element) { element.textContent = message; element.className = `small text-center mb-2 text-${type}`; } }
+    function updateUIBasedOnState() { /* ... (Aynı kaldı, replay butonu cachedAnimationData'ya bakıyor) ... */
+        console.log(`updateUIBasedOnState çağrıldı. Durum: ${currentBattleStatus}, Animasyon: ${isAnimating}`); const showStatus = !isAnimating && currentBattleStatus !== 'FINISHED'; const showAnimation = isAnimating; const showResults = !isAnimating && currentBattleStatus === 'FINISHED'; if (battleStatusDisplay) battleStatusDisplay.style.display = showStatus ? 'flex' : 'none'; if (battleAnimationArea) battleAnimationArea.style.display = showAnimation ? 'block' : 'none'; if (battleResultsArea) battleResultsArea.style.display = showResults ? 'block' : 'none'; if (showStatus && battleStatusDisplay) { battleStatusDisplay.querySelectorAll('.status-content').forEach(el => { if(el.parentElement === battleStatusDisplay) el.style.display = 'none'; }); let contentToShow = null; if (currentBattleStatus === 'WAITING') contentToShow = battleStatusDisplay.querySelector('.battle-waiting-content'); else if (currentBattleStatus === 'STARTING') contentToShow = battleStatusDisplay.querySelector('.battle-starting-content'); else { contentToShow = battleStatusDisplay.querySelector('.battle-other-content'); if (contentToShow && currentBattleStatus !== 'CANCELLED' && currentBattleStatus !== 'ERROR') { const statusTextEl = contentToShow.querySelector('#other-status-text'); if (statusTextEl) statusTextEl.textContent = currentBattleStatus; } } if (contentToShow) contentToShow.style.display = 'flex'; else { console.warn("Gösterilecek durum içeriği bulunamadı:", currentBattleStatus); } } const participantCount = parseInt(participantCountSpan ? participantCountSpan.textContent : '0'); const isFull = participantCount >= maxParticipants; const canAddBotNow = isCreator && currentBattleStatus === 'WAITING' && !isFull && !isRequestPending; if (addBotButton) { addBotButton.style.display = (isCreator && currentBattleStatus === 'WAITING' && !isFull) ? 'block' : 'none'; setButtonState(addBotButton, canAddBotNow, 'Bot Ekle'); showSpinner(addBotSpinner, false); } const canStartNow = isCreator && currentBattleStatus === 'WAITING' && isFull && !isRequestPending; if (startBattleButton) { startBattleButton.style.display = (isCreator && currentBattleStatus === 'WAITING' && isFull) ? 'block' : 'none'; setButtonState(startBattleButton, canStartNow, 'Savaşı Başlat!'); showSpinner(startBattleSpinner, false); } if(replayButton) replayButton.style.display = (showResults && cachedAnimationData) ? 'inline-block' : 'none'; console.log(`UI Güncelleme Sonrası: Durum=${currentBattleStatus}, Dolu=${isFull}, Bot Ekleyebilir=${canAddBotNow}, Başlatabilir=${canStartNow}`);
+     }
 
-        if (battleStatusDisplay) battleStatusDisplay.style.display = showStatus ? 'flex' : 'none';
-        if (battleAnimationArea) battleAnimationArea.style.display = showAnimation ? 'block' : 'none';
-        if (battleResultsArea) battleResultsArea.style.display = showResults ? 'block' : 'none';
-
-        if (showStatus && battleStatusDisplay) { /* ... (içerik gösterme aynı) ... */
-            battleStatusDisplay.querySelectorAll('.status-content').forEach(el => { if(el.parentElement === battleStatusDisplay) el.style.display = 'none'; });
-            let contentToShow = null; if (currentBattleStatus === 'WAITING') contentToShow = battleStatusDisplay.querySelector('.battle-waiting-content'); else if (currentBattleStatus === 'STARTING') contentToShow = battleStatusDisplay.querySelector('.battle-starting-content'); else { contentToShow = battleStatusDisplay.querySelector('.battle-other-content'); if (contentToShow && currentBattleStatus !== 'CANCELLED' && currentBattleStatus !== 'ERROR') { const statusTextEl = contentToShow.querySelector('#other-status-text'); if (statusTextEl) statusTextEl.textContent = currentBattleStatus; } } if (contentToShow) contentToShow.style.display = 'flex'; else { console.warn("Gösterilecek durum içeriği bulunamadı:", currentBattleStatus); }
-        }
-
-        const participantCount = parseInt(participantCountSpan ? participantCountSpan.textContent : '0');
-        const isFull = participantCount >= maxParticipants;
-        const canAddBotNow = isCreator && currentBattleStatus === 'WAITING' && !isFull && !isRequestPending;
-        if (addBotButton) { addBotButton.style.display = (isCreator && currentBattleStatus === 'WAITING' && !isFull) ? 'block' : 'none'; setButtonState(addBotButton, canAddBotNow, 'Bot Ekle'); showSpinner(addBotSpinner, false); }
-        const canStartNow = isCreator && currentBattleStatus === 'WAITING' && isFull && !isRequestPending;
-         if (startBattleButton) { startBattleButton.style.display = (isCreator && currentBattleStatus === 'WAITING' && isFull) ? 'block' : 'none'; setButtonState(startBattleButton, canStartNow, 'Savaşı Başlat!'); showSpinner(startBattleSpinner, false); }
-        // --- DÜZELTME: cachedAnimationData kontrolü ---
-        if(replayButton) replayButton.style.display = (showResults && cachedAnimationData) ? 'inline-block' : 'none';
-        // --- --- --- --- --- --- --- --- --- --- ---
-        console.log(`UI Güncelleme Sonrası: Durum=${currentBattleStatus}, Dolu=${isFull}, Bot Ekleyebilir=${canAddBotNow}, Başlatabilir=${canStartNow}`);
-    }
-
-    // --- DİKEY ANİMASYON FONKSİYONU (targetStopItem argümanını kullanır) ---
-    function runVerticalBattleReelAnimation(reelContainerElement, allSkinsForPadding, actualUnboxedItems, targetStopItem) { // targetStopItem artık dışarıdan geliyor
-         console.log("runVerticalBattleReelAnimation başladı. Items:", actualUnboxedItems, "Kullanılacak Hedef:", targetStopItem); // Gelen hedefi logla
+    // --- DİKEY ANİMASYON FONKSİYONU (Dizilim kaydetme/kullanma eklendi) ---
+    function runVerticalBattleReelAnimation(reelContainerElement, allSkinsForPadding, actualUnboxedItems, targetStopItem, predefinedSequence = null, predefinedWinnerIndex = -1) {
+         console.log("runVerticalBattleReelAnimation başladı.");
          return new Promise((resolve, reject) => {
             const reelElement = reelContainerElement.querySelector('.reel');
             const viewport = reelContainerElement;
             const marker = reelContainerElement.querySelector('.marker-vertical');
-            if (!reelElement || !marker || !viewport) { console.error("Dikey Reel elementleri eksik:", reelContainerElement); return reject("Dikey Reel elementleri eksik."); }
+            if (!reelElement || !marker || !viewport) { console.error("Dikey Reel elementleri eksik!"); return reject("Dikey Reel elementleri eksik."); }
 
             const itemHeight = 120; const itemMargin = 5 * 2; const totalItemHeight = itemHeight + itemMargin;
-            const animationTime = 6000 + Math.random() * 1500;
-            const animationTimingFunc = 'cubic-bezier(0.2, 0.9, 0.1, 1)';
-            const reelLength = 70; // Dikey reel uzunluğu
-            // Kazanan pozisyonunu hesapla (sabit veya dinamik)
-            const winnerPositionIndex = Math.max(10, Math.floor(reelLength * 0.7));
+            const animationTime = 6000 + Math.random() * 1500; const animationTimingFunc = 'cubic-bezier(0.2, 0.9, 0.1, 1)';
+            const reelLength = 70;
 
-            reelElement.innerHTML = '';
             let displayItems = [];
-            let paddingItems = allSkinsForPadding && allSkinsForPadding.length > 0 ? allSkinsForPadding : [{id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}];
-
-            // 1. Reel'i rastgele itemlarla doldur
-            for (let i = 0; i < reelLength; i++) { let rndSkin = paddingItems[Math.floor(Math.random() * paddingItems.length)]; displayItems.push({...rndSkin}); }
-
-            // 2. Önceden belirlenmiş targetStopItem'ı yerleştir
             let actualWinnerIndex = -1;
-            if (targetStopItem) {
-                 let safeWinnerIndex = Math.max(0, Math.min(winnerPositionIndex, reelLength - 1));
-                 displayItems[safeWinnerIndex] = targetStopItem; // Üzerine yaz
-                 actualWinnerIndex = safeWinnerIndex;
-                 console.log("Belirlenmiş hedef item yerleştirildi. Index:", actualWinnerIndex);
-            } else {
-                 // Eğer bir şekilde hedef item gelmemişse (hata durumu), ortadaki item'ı hedefle
-                 actualWinnerIndex = Math.floor(reelLength / 2);
-                 console.warn("runVerticalBattleReelAnimation'a hedef item gelmedi, ortadaki item hedefleniyor.");
-            }
 
-            // 3. Diğer kazanılan itemları (varsa) hedefin etrafına yerleştir (opsiyonel, görsel çeşitlilik için)
-            let otherWonItems = actualUnboxedItems ? actualUnboxedItems.filter(item => item?.id !== targetStopItem?.id) : [];
-            otherWonItems.forEach((item, idx) => {
-                let insertPos = actualWinnerIndex + (idx % 2 === 0 ? -(idx + 1) : (idx + 1));
-                insertPos = Math.max(0, Math.min(insertPos, reelLength - 1));
-                if (insertPos !== actualWinnerIndex) { // Hedefin üzerine yazma
-                     displayItems[insertPos] = item;
-                     console.log(`Diğer kazanılan item (${item.name}) index ${insertPos}'a yerleştirildi.`);
-                }
-            });
+            // --- DÜZELTME: Tekrar izleme kontrolü ---
+            if (predefinedSequence && predefinedSequence.length === reelLength && predefinedWinnerIndex >= 0) {
+                console.log("Önceden tanımlanmış dizilim kullanılıyor. Index:", predefinedWinnerIndex);
+                displayItems = predefinedSequence;
+                actualWinnerIndex = predefinedWinnerIndex;
+            } else {
+                // İlk çalıştırma veya replay verisi yoksa: Dizilimi oluştur
+                console.log("Yeni animasyon dizilimi oluşturuluyor. Items:", actualUnboxedItems, "Hedef:", targetStopItem);
+                let paddingItems = allSkinsForPadding && allSkinsForPadding.length > 0 ? allSkinsForPadding : [{id: -1, image_url: placeholderImageUrl, name:'?', rarity_color:'#6c757d', value:0, rarity_name: 'default'}];
+                // 1. Reel'i rastgele doldur
+                for (let i = 0; i < reelLength; i++) { let rndSkin = paddingItems[Math.floor(Math.random() * paddingItems.length)]; displayItems.push({...rndSkin}); }
+                // 2. Hedefi yerleştir
+                const winnerPositionIndex = Math.max(10, Math.floor(reelLength * 0.7));
+                if (targetStopItem) { let safeWinnerIndex = Math.max(0, Math.min(winnerPositionIndex, reelLength - 1)); displayItems[safeWinnerIndex] = targetStopItem; actualWinnerIndex = safeWinnerIndex; }
+                else { actualWinnerIndex = Math.floor(reelLength / 2); console.warn("runVertical... hedef item yok, ortadaki hedefleniyor."); }
+                // 3. Diğer kazanılanları yerleştir (opsiyonel)
+                let otherWonItems = actualUnboxedItems ? actualUnboxedItems.filter(item => item?.id !== targetStopItem?.id) : [];
+                otherWonItems.forEach((item, idx) => { let insertPos = actualWinnerIndex + (idx % 2 === 0 ? -(idx + 1) : (idx + 1)); insertPos = Math.max(0, Math.min(insertPos, reelLength - 1)); if (insertPos !== actualWinnerIndex) { displayItems[insertPos] = item; } });
+                console.log("Yeni dizilim oluşturuldu. Kazanan Index:", actualWinnerIndex);
+            }
+            // --- --- --- --- --- --- --- --- ---
 
             // 4. Itemları HTML'e ekle
-            displayItems.forEach(item => { /* ... (HTML oluşturma aynı) ... */
-                if (!item) return; const div = document.createElement('div'); const rarityName = item.rarity_name ? item.rarity_name.toLowerCase().replace(/[^a-z0-9-]/g, '-') : 'default'; const rarityColor = item.rarity_color || '#6c757d'; div.classList.add('item', `rarity-${rarityName}`); div.style.setProperty('--rarity-color-glow', rarityColor); const img = document.createElement('img'); img.src = item.image_url || placeholderImageUrl; img.alt = item.name || '?'; img.loading = 'lazy'; const nameSpan = document.createElement('span'); nameSpan.textContent = item.name || '?'; const itemValueNumber = parseFloat(item.value || 0); if (isNaN(itemValueNumber)) { nameSpan.title = `${item.name || '?'} (N/A)`; } else { nameSpan.title = `${item.name || '?'} (${itemValueNumber.toFixed(2)}₺)`; } div.appendChild(img); div.appendChild(nameSpan); reelElement.appendChild(div);
-             });
+            reelElement.innerHTML = ''; // Temizle
+            if (displayItems.length === 0) { console.error("displayItems boş!"); return reject("Item dizilimi boş."); }
+            displayItems.forEach(item => { /* ... (HTML oluşturma aynı) ... */ if (!item) return; const div = document.createElement('div'); const rarityName = item.rarity_name ? item.rarity_name.toLowerCase().replace(/[^a-z0-9-]/g, '-') : 'default'; const rarityColor = item.rarity_color || '#6c757d'; div.classList.add('item', `rarity-${rarityName}`); div.style.setProperty('--rarity-color-glow', rarityColor); const img = document.createElement('img'); img.src = item.image_url || placeholderImageUrl; img.alt = item.name || '?'; img.loading = 'lazy'; const nameSpan = document.createElement('span'); nameSpan.textContent = item.name || '?'; const itemValueNumber = parseFloat(item.value || 0); if (isNaN(itemValueNumber)) { nameSpan.title = `${item.name || '?'} (N/A)`; } else { nameSpan.title = `${item.name || '?'} (${itemValueNumber.toFixed(2)}₺)`; } div.appendChild(img); div.appendChild(nameSpan); reelElement.appendChild(div); });
 
-            // 5. Animasyonu başlat
+            // 5. Animasyonu Başlat
             const initialOffset = (Math.random() - 0.5) * itemHeight * 0.4;
             reelElement.style.transition = 'none'; reelElement.style.transform = `translateY(${initialOffset}px)`;
 
             setTimeout(() => {
-                 // --- DÜZELTME: actualWinnerIndex kullan ---
                  const targetItemElement = reelElement.children[actualWinnerIndex];
                  if (!targetItemElement) { console.error("Dikey Animasyon: Hedef item DOM'da bulunamadı! Index:", actualWinnerIndex); return reject("Hedef item DOM'da bulunamadı."); }
-                 // --- --- --- --- --- --- --- --- --- ---
-
                  const viewportHeight = viewport.offsetHeight; const targetCenterY = targetItemElement.offsetTop + (itemHeight / 2) + (itemMargin / 2); const viewportCenterY = viewportHeight / 2;
                  let finalPosition = viewportCenterY - targetCenterY; finalPosition += (Math.random() - 0.5) * (itemHeight * 0.05);
                  console.log(`Dikey Animasyon: Hedef Index=${actualWinnerIndex}, Son PozisyonY=${finalPosition.toFixed(2)}`);
                  reelElement.style.transition = `transform ${animationTime / 1000}s ${animationTimingFunc}`; reelElement.style.transform = `translateY(${finalPosition}px)`;
-                 reelElement.addEventListener('transitionend', () => { console.log("Dikey Animasyon bitti. Hedef item:", targetItemElement); if (targetItemElement) { targetItemElement.classList.add('winner-item'); } resolve(); }, { once: true });
+                 reelElement.addEventListener('transitionend', () => { console.log("Dikey Animasyon bitti. Hedef item:", targetItemElement); if (targetItemElement) { targetItemElement.classList.add('winner-item'); }
+                     // --- DÜZELTME: Oluşturulan dizilimi ve indexi resolve ile döndür ---
+                     resolve({ sequence: displayItems, winnerIndex: actualWinnerIndex });
+                     // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+                 }, { once: true });
             }, 100);
         });
     }
 
-    /* -------- SONUÇLARI GÖSTERME FONKSİYONU (Değişiklik yok) -------- */
-    function displayBattleResults(resultsData) { /* ... (Öncekiyle aynı) ... */
-        console.log("displayBattleResults çağrıldı. Veri:", resultsData);
-         if (!resultsData || !resultsData.participants || !battleResultsArea) { console.error("Sonuç verisi eksik veya beklenen formatta değil veya sonuç alanı bulunamadı.", resultsData); if(resultsParticipantCards) resultsParticipantCards.innerHTML = '<p class="text-danger col-12">Savaş sonuçları yüklenemedi (veri formatı hatası).</p>'; updateUIBasedOnState(); return; }
-         currentBattleStatus = resultsData.battle_status || 'FINISHED';
-         cachedFullResults = resultsData; // Tam sonuçları cache'le
-         if(resultsTotalValue) resultsTotalValue.textContent = (resultsData.total_battle_value || 0.00).toFixed(2);
-         if (resultsWinnerInfo) { resultsWinnerInfo.innerHTML = ''; const winners = resultsData.participants.filter(p => p.is_winner && !p.is_bot); const mode = resultsData.mode; if (mode === 'SHARED') { const realParticipantCount = resultsData.participants.filter(p => !p.is_bot).length; if (realParticipantCount > 0 && resultsData.total_battle_value > 0) { try { const valuePer = (resultsData.total_battle_value / realParticipantCount).toFixed(2); resultsWinnerInfo.innerHTML = `<p class="text-info mb-0">Ortak Mod: Her gerçek katılımcı ~${valuePer}₺ bakiye kazandı.</p>`; } catch (e) { resultsWinnerInfo.innerHTML = `<p class="text-info mb-0">Ortak Mod: Değer paylaşıldı.</p>`; } } else { resultsWinnerInfo.innerHTML = `<p class="text-muted mb-0">Ortak Mod: Paylaşılacak değer veya katılımcı yok.</p>`; } } else if (winners.length === 1) { resultsWinnerInfo.innerHTML = `<h5 class="mb-0">Kazanan: <span class="badge bg-success fs-6 mx-1">${winners[0].name}</span></h5>`; } else if (winners.length > 1) { resultsWinnerInfo.innerHTML = `<h5 class="mb-0">Beraberlik! Kazananlar: ${winners.map(w => `<span class="badge bg-success fs-6 mx-1">${w.name}</span>`).join(' ')}</h5>`; } else { const botWinner = resultsData.participants.find(p => p.is_winner && p.is_bot); if (botWinner) { resultsWinnerInfo.innerHTML = `<h5 class="text-muted mb-0">Kazanan: ${botWinner.name} (Bot)</h5>`; } else { resultsWinnerInfo.innerHTML = `<h5 class="text-muted mb-0">Kazanan Yok / Belirlenemedi</h5>`; } } }
-        if (resultsParticipantCards) { resultsParticipantCards.innerHTML = ''; resultsData.participants.forEach(p => { const cardCol = document.createElement('div'); const participantCountForResult = resultsData.participants.length; let colClassNum = 12 / Math.max(1, participantCountForResult); if (participantCountForResult > 4) colClassNum = 3; else if (participantCountForResult === 3) colClassNum = 4; else if (participantCountForResult === 2) colClassNum = 6; else if (participantCountForResult === 1) colClassNum = 12; cardCol.className = `col-lg-${Math.max(3, Math.floor(colClassNum))} col-md-6 mb-3`; const card = document.createElement('div'); card.className = 'card participant-result-card h-100'; const mode = resultsData.mode; if (p.is_winner && mode !== 'SHARED') card.classList.add('winner-card'); if (p.is_bot) card.classList.add('bot-card'); const cardHeader = document.createElement('div'); cardHeader.className = 'card-header'; cardHeader.innerHTML = `<span>${p.name}</span><span class="badge ${p.is_winner && mode !== 'SHARED' ? 'bg-warning text-dark' : (mode === 'SHARED' && !p.is_bot ? 'bg-info text-dark' : 'bg-light text-dark')}">${(p.total_value || 0.00).toFixed(2)} ₺</span>`; const cardBody = document.createElement('div'); cardBody.className = 'card-body'; const itemGrid = document.createElement('div'); itemGrid.className = 'unboxed-item-grid'; if (p.unboxings && p.unboxings.length > 0) { p.unboxings.forEach(item => { const itemDisplay = document.createElement('div'); itemDisplay.className = 'unboxed-item-display'; const itemValue = parseFloat(item.value || 0).toFixed(2); itemDisplay.title = `${item.name} (${itemValue}₺)`; const rarityIndicator = document.createElement('div'); rarityIndicator.className = 'rarity-indicator'; rarityIndicator.style.backgroundColor = item.rarity_color || '#FFFFFF'; const img = document.createElement('img'); img.src = item.image_url || placeholderImageUrl; img.alt = item.name; const valueTooltip = document.createElement('span'); valueTooltip.className = 'item-value-tooltip'; valueTooltip.textContent = `${itemValue}₺`; itemDisplay.appendChild(rarityIndicator); itemDisplay.appendChild(img); itemDisplay.appendChild(valueTooltip); itemGrid.appendChild(itemDisplay); }); } else { itemGrid.innerHTML = '<p class="text-muted small w-100 m-0 text-start">Eşya açılmadı.</p>'; } cardBody.appendChild(itemGrid); card.appendChild(cardHeader); card.appendChild(cardBody); cardCol.appendChild(card); resultsParticipantCards.appendChild(cardCol); }); }
-         updateUIBasedOnState();
+    /* -------- SONUÇLARI GÖSTERME FONKSİYONU -------- */
+    function displayBattleResults(resultsData) { /* ... (Aynı kaldı) ... */
+        console.log("displayBattleResults çağrıldı. Veri:", resultsData); if (!resultsData || !resultsData.participants || !battleResultsArea) { console.error("Sonuç verisi eksik veya beklenen formatta değil veya sonuç alanı bulunamadı.", resultsData); if(resultsParticipantCards) resultsParticipantCards.innerHTML = '<p class="text-danger col-12">Savaş sonuçları yüklenemedi (veri formatı hatası).</p>'; updateUIBasedOnState(); return; } currentBattleStatus = resultsData.battle_status || 'FINISHED'; cachedFullResults = resultsData; if(resultsTotalValue) resultsTotalValue.textContent = (resultsData.total_battle_value || 0.00).toFixed(2); if (resultsWinnerInfo) { resultsWinnerInfo.innerHTML = ''; const winners = resultsData.participants.filter(p => p.is_winner && !p.is_bot); const mode = resultsData.mode; if (mode === 'SHARED') { const realParticipantCount = resultsData.participants.filter(p => !p.is_bot).length; if (realParticipantCount > 0 && resultsData.total_battle_value > 0) { try { const valuePer = (resultsData.total_battle_value / realParticipantCount).toFixed(2); resultsWinnerInfo.innerHTML = `<p class="text-info mb-0">Ortak Mod: Her gerçek katılımcı ~${valuePer}₺ bakiye kazandı.</p>`; } catch (e) { resultsWinnerInfo.innerHTML = `<p class="text-info mb-0">Ortak Mod: Değer paylaşıldı.</p>`; } } else { resultsWinnerInfo.innerHTML = `<p class="text-muted mb-0">Ortak Mod: Paylaşılacak değer veya katılımcı yok.</p>`; } } else if (winners.length === 1) { resultsWinnerInfo.innerHTML = `<h5 class="mb-0">Kazanan: <span class="badge bg-success fs-6 mx-1">${winners[0].name}</span></h5>`; } else if (winners.length > 1) { resultsWinnerInfo.innerHTML = `<h5 class="mb-0">Beraberlik! Kazananlar: ${winners.map(w => `<span class="badge bg-success fs-6 mx-1">${w.name}</span>`).join(' ')}</h5>`; } else { const botWinner = resultsData.participants.find(p => p.is_winner && p.is_bot); if (botWinner) { resultsWinnerInfo.innerHTML = `<h5 class="text-muted mb-0">Kazanan: ${botWinner.name} (Bot)</h5>`; } else { resultsWinnerInfo.innerHTML = `<h5 class="text-muted mb-0">Kazanan Yok / Belirlenemedi</h5>`; } } } if (resultsParticipantCards) { resultsParticipantCards.innerHTML = ''; resultsData.participants.forEach(p => { const cardCol = document.createElement('div'); const participantCountForResult = resultsData.participants.length; let colClassNum = 12 / Math.max(1, participantCountForResult); if (participantCountForResult > 4) colClassNum = 3; else if (participantCountForResult === 3) colClassNum = 4; else if (participantCountForResult === 2) colClassNum = 6; else if (participantCountForResult === 1) colClassNum = 12; cardCol.className = `col-lg-${Math.max(3, Math.floor(colClassNum))} col-md-6 mb-3`; const card = document.createElement('div'); card.className = 'card participant-result-card h-100'; const mode = resultsData.mode; if (p.is_winner && mode !== 'SHARED') card.classList.add('winner-card'); if (p.is_bot) card.classList.add('bot-card'); const cardHeader = document.createElement('div'); cardHeader.className = 'card-header'; cardHeader.innerHTML = `<span>${p.name}</span><span class="badge ${p.is_winner && mode !== 'SHARED' ? 'bg-warning text-dark' : (mode === 'SHARED' && !p.is_bot ? 'bg-info text-dark' : 'bg-light text-dark')}">${(p.total_value || 0.00).toFixed(2)} ₺</span>`; const cardBody = document.createElement('div'); cardBody.className = 'card-body'; const itemGrid = document.createElement('div'); itemGrid.className = 'unboxed-item-grid'; if (p.unboxings && p.unboxings.length > 0) { p.unboxings.forEach(item => { const itemDisplay = document.createElement('div'); itemDisplay.className = 'unboxed-item-display'; const itemValue = parseFloat(item.value || 0).toFixed(2); itemDisplay.title = `${item.name} (${itemValue}₺)`; const rarityIndicator = document.createElement('div'); rarityIndicator.className = 'rarity-indicator'; rarityIndicator.style.backgroundColor = item.rarity_color || '#FFFFFF'; const img = document.createElement('img'); img.src = item.image_url || placeholderImageUrl; img.alt = item.name; const valueTooltip = document.createElement('span'); valueTooltip.className = 'item-value-tooltip'; valueTooltip.textContent = `${itemValue}₺`; itemDisplay.appendChild(rarityIndicator); itemDisplay.appendChild(img); itemDisplay.appendChild(valueTooltip); itemGrid.appendChild(itemDisplay); }); } else { itemGrid.innerHTML = '<p class="text-muted small w-100 m-0 text-start">Eşya açılmadı.</p>'; } cardBody.appendChild(itemGrid); card.appendChild(cardHeader); card.appendChild(cardBody); cardCol.appendChild(card); resultsParticipantCards.appendChild(cardCol); }); } updateUIBasedOnState();
      }
 
     /* -------- ANA ANİMASYON OYNATMA FONKSİYONU (Wrapper) -------- */
-    // --- DÜZELTME: Artık animationData = { "id": { items: [...], target: {...} } } ---
-    function playBattleAnimationWrapper(animationDataWithTarget) {
-         console.log("playBattleAnimationWrapper çağrıldı. Tam Anim Verisi:", animationDataWithTarget);
+    function playBattleAnimationWrapper(animationInputData) { // Input: { "id": { items: [...], target: {...} } } VEYA { "id": { sequence: [...], winnerIndex: X } }
+         console.log("playBattleAnimationWrapper çağrıldı. Input Verisi:", animationInputData);
          if (isAnimating) { console.warn("Animasyon zaten çalışıyor."); return Promise.reject("Animasyon zaten çalışıyor."); }
-         if (!battleAnimationArea || !participantReelsContainer || !animationDataWithTarget || typeof animationDataWithTarget !== 'object' || Object.keys(animationDataWithTarget).length === 0) {
-             console.error("Animasyon başlatılamadı - Element/animasyon verisi eksik.", {battleAnimationArea, participantReelsContainer, animationDataWithTarget});
+         if (!battleAnimationArea || !participantReelsContainer || !animationInputData || typeof animationInputData !== 'object' || Object.keys(animationInputData).length === 0) {
+             console.error("Animasyon başlatılamadı - Element/animasyon verisi eksik.", {battleAnimationArea, participantReelsContainer, animationInputData});
              isAnimating = false; updateUIBasedOnState(); return Promise.reject("Element/animasyon verisi eksik");
          }
 
          isAnimating = true;
          console.log("Animasyonlar başlıyor...");
-         battleStatusDisplay.style.display = 'none';
-         battleResultsArea.style.display = 'none';
-         battleAnimationArea.style.display = 'block';
+         battleStatusDisplay.style.display = 'none'; battleResultsArea.style.display = 'none'; battleAnimationArea.style.display = 'block';
          participantReelsContainer.innerHTML = '';
          if(battleAnimationStatus) battleAnimationStatus.textContent = "Açılışlar Başlıyor...";
 
          const animationPromises = [];
-         Object.keys(animationDataWithTarget).forEach(pIdStr => {
+         // --- DÜZELTME: Hem ilk çalıştırma hem de replay için ortak yapı ---
+         const initialAnimationResults = {}; // İlk çalıştırmada sequence/index'i saklamak için
+         const isReplay = animationInputData[Object.keys(animationInputData)[0]]?.sequence !== undefined; // Replay mi kontrol et
+         console.log("Bu bir tekrar izleme mi?", isReplay);
+
+         Object.keys(animationInputData).forEach(pIdStr => {
              const pId = parseInt(pIdStr);
-             const participantData = animationDataWithTarget[pIdStr]; // { items: [...], target: {...} }
-             if (!participantData || !participantData.items) {
-                 console.warn(`Katılımcı ${pId} için animasyon verisi eksik, atlanıyor.`);
-                 return; // Bu katılımcıyı atla
-             }
-             const pUnboxings = participantData.items;
-             const pTargetItem = participantData.target; // Önceden belirlenmiş hedef
+             const participantData = animationInputData[pIdStr];
+             if (!participantData) { console.warn(`Katılımcı ${pId} için animasyon verisi yok.`); return; }
+
+             // Gerekli verileri al (ilk çalıştırma veya replay için)
+             const pUnboxings = participantData.items || participantData.sequence?.slice(0, participantData.winnerIndex + 1).filter(Boolean); // Replay için sequence'dan al veya ilk çalıştırma için items
+             const pTargetItem = participantData.target || participantData.sequence?.[participantData.winnerIndex];
+             const predefinedSequence = participantData.sequence || null;
+             const predefinedWinnerIndex = participantData.winnerIndex !== undefined ? participantData.winnerIndex : -1;
+
+             if (!pUnboxings) { console.warn(`Katılımcı ${pId} için item listesi bulunamadı.`); return; }
 
              const participantDetails = cachedFullResults?.participants?.find(p => p.id === pId);
              const pName = participantDetails ? participantDetails.name : `Katılımcı ${pId}`;
              const pIsBot = participantDetails ? participantDetails.is_bot : false;
 
-             console.log(`Dikey Reel oluşturuluyor: ID=${pId}, İsim=${pName}, Bot=${pIsBot}, Açılan=${pUnboxings.length}, Hedef=`, pTargetItem);
+             console.log(`Dikey Reel oluşturuluyor: ID=${pId}, İsim=${pName}, Bot=${pIsBot}, Tekrar=${isReplay}`);
 
              const container = document.createElement('div');
-             const participantCount = Object.keys(animationDataWithTarget).length; let colClassNum = 12 / Math.max(1, participantCount); if (participantCount > 4) colClassNum = 3; else if (participantCount === 3) colClassNum = 4; else if (participantCount === 2) colClassNum = 6; else if (participantCount === 1) colClassNum = 12; container.className = `participant-reel-container col-lg-${Math.max(3, Math.floor(colClassNum))} col-md-6`;
-
+             const participantCount = Object.keys(animationInputData).length; let colClassNum = 12 / Math.max(1, participantCount); if (participantCount > 4) colClassNum = 3; else if (participantCount === 3) colClassNum = 4; else if (participantCount === 2) colClassNum = 6; else if (participantCount === 1) colClassNum = 12; container.className = `participant-reel-container col-lg-${Math.max(3, Math.floor(colClassNum))} col-md-6`;
              const nameHeader = document.createElement('h6'); nameHeader.textContent = pName; if(pIsBot) nameHeader.classList.add('text-muted','fst-italic'); container.appendChild(nameHeader);
              const viewport = document.createElement('div'); viewport.className = 'reel-container participant-reel-viewport'; viewport.id = `reel-viewport-${pId}`;
              const marker = document.createElement('div'); marker.className = 'marker-vertical'; viewport.appendChild(marker);
              const reel = document.createElement('div'); reel.className = 'reel participant-reel'; reel.id = `reel-${pId}`; viewport.appendChild(reel);
              container.appendChild(viewport); participantReelsContainer.appendChild(container);
 
-             // Dikey animasyon fonksiyonunu çağır, bu sefer belirlenmiş hedefle
-             animationPromises.push(runVerticalBattleReelAnimation(viewport, allPossibleSkinsFromCases, pUnboxings, pTargetItem));
+             // runVerticalBattleReelAnimation'ı çağır
+             let animPromise = runVerticalBattleReelAnimation(
+                 viewport,
+                 allPossibleSkinsFromCases,
+                 pUnboxings, // Sadece kazanılanlar (ilk çalıştırma için padding hesaplamada kullanılır)
+                 pTargetItem, // Belirlenmiş veya hesaplanmış hedef
+                 predefinedSequence, // Replay ise dolu, değilse null
+                 predefinedWinnerIndex // Replay ise dolu, değilse -1
+             );
+
+             // Eğer ilk çalıştırmaysa, dönen sequence ve index'i sakla
+             if (!isReplay) {
+                 animPromise = animPromise.then(result => {
+                     if (result && result.sequence && result.winnerIndex !== undefined) {
+                         initialAnimationResults[pIdStr] = result; // { sequence: [...], winnerIndex: X }
+                         console.log(`Katılımcı ${pId} için dizilim kaydedildi.`);
+                     } else {
+                         console.error(`Katılımcı ${pId} için animasyon sonucu alınamadı!`, result);
+                     }
+                     return result; // Promise zincirini devam ettir
+                 });
+             }
+             animationPromises.push(animPromise);
          });
+         // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
         if(battleAnimationStatus) battleAnimationStatus.textContent = "Kasalar Açılıyor...";
 
         return Promise.all(animationPromises).then(() => {
              console.log("Tüm savaş animasyonları bitti.");
              if(battleAnimationStatus) battleAnimationStatus.textContent = "Açılışlar Tamamlandı!";
+
+             // --- DÜZELTME: Eğer ilk çalıştırmaysa, sonuçları cache'le ---
+             if (!isReplay && Object.keys(initialAnimationResults).length > 0) {
+                 cachedAnimationData = initialAnimationResults; // Tam dizilimleri cache'le
+                 console.log("Animasyon dizilimleri tekrar izleme için cache'lendi:", cachedAnimationData);
+             }
+             // --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
              setTimeout(() => {
                   isAnimating = false;
                   if (cachedFullResults) { console.log("Cache'lenmiş tam sonuçlar kullanılıyor."); displayBattleResults(cachedFullResults); }
@@ -341,12 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- YENİ FONKSİYON: Sonuçları Fetch Et ve Göster (Aynı kaldı) ---
     function fetchAndDisplayResults() { /* ... (Öncekiyle aynı) ... */
-        console.log("fetchAndDisplayResults çağrıldı..."); isRequestPending = true; updateUIBasedOnState(); if(resultsParticipantCards) resultsParticipantCards.innerHTML = '<div class="col-12 text-center"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Yükleniyor...</span></div><p class="text-info mt-2">Savaş sonuçları yükleniyor...</p></div>';
-        fetch(getResultsUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(response => { if (!response.ok) { return response.text().then(text => { throw new Error(`Sunucu hatası (${response.status}): ${text || 'Bilinmeyen hata'}`) }); } return response.json(); })
-        .then(data => { console.log("getResultsUrl yanıtı:", data); if (data.success) { displayBattleResults(data); } else { console.error("Savaş sonuçları API'den alınamadı:", data.error); if(resultsParticipantCards) resultsParticipantCards.innerHTML = `<p class="text-danger col-12">Savaş sonuçları yüklenemedi: ${data.error || 'API Hatası'}</p>`; } })
-        .catch(error => { console.error("Savaş sonuçları fetch hatası:", error); if(resultsParticipantCards) resultsParticipantCards.innerHTML = `<p class="text-danger col-12">Savaş sonuçları yüklenirken hata oluştu: ${error.message}</p>`; })
-        .finally(() => { isRequestPending = false; updateUIBasedOnState(); });
+        console.log("fetchAndDisplayResults çağrıldı..."); isRequestPending = true; updateUIBasedOnState(); if(resultsParticipantCards) resultsParticipantCards.innerHTML = '<div class="col-12 text-center"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Yükleniyor...</span></div><p class="text-info mt-2">Savaş sonuçları yükleniyor...</p></div>'; fetch(getResultsUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(response => { if (!response.ok) { return response.text().then(text => { throw new Error(`Sunucu hatası (${response.status}): ${text || 'Bilinmeyen hata'}`) }); } return response.json(); }).then(data => { console.log("getResultsUrl yanıtı:", data); if (data.success) { displayBattleResults(data); /* Cache'i de doldurur */ } else { console.error("Savaş sonuçları API'den alınamadı:", data.error); if(resultsParticipantCards) resultsParticipantCards.innerHTML = `<p class="text-danger col-12">Savaş sonuçları yüklenemedi: ${data.error || 'API Hatası'}</p>`; } }).catch(error => { console.error("Savaş sonuçları fetch hatası:", error); if(resultsParticipantCards) resultsParticipantCards.innerHTML = `<p class="text-danger col-12">Savaş sonuçları yüklenirken hata oluştu: ${error.message}</p>`; }).finally(() => { isRequestPending = false; updateUIBasedOnState(); });
      }
 
     /* -------- EVENT LISTENERS -------- */
@@ -367,36 +283,32 @@ document.addEventListener('DOMContentLoaded', () => {
                  if (data.success && data.battle_status === 'FINISHED') {
                       showStatusMessage(startBattleStatus, 'Savaş bitti, animasyon hazırlanıyor...', 'info');
                       currentBattleStatus = data.battle_status;
+                      const animationItems = data.unboxing_items_for_anim || data.unboxing_results; // Eski/Yeni format kontrolü
 
-                      // --- DÜZELTME: Hem animasyon verisini hem hedefi cache'le ---
-                      const animationItems = data.unboxing_items_for_anim || data.unboxing_results;
                       if (animationItems && typeof animationItems === 'object' && Object.keys(animationItems).length > 0) {
-                          cachedAnimationData = {}; // Cache'i temizle/oluştur
-                          // Her katılımcı için hedefi belirle ve cache'le
+                          // --- DÜZELTME: İlk çalıştırma için animationData oluştur ---
+                          const initialAnimationInput = {};
                           Object.keys(animationItems).forEach(pIdStr => {
-                              const pId = parseInt(pIdStr);
                               const pUnboxings = animationItems[pIdStr] || [];
                               let targetStopItem = pUnboxings.length > 0 ? pUnboxings.reduce((max, skin) => (skin && max && parseFloat(skin.value||0) > parseFloat(max.value||0)) ? skin : max, {value: -1}) : null;
                               if (!targetStopItem || targetStopItem.value <= 0) targetStopItem = pUnboxings.length > 0 ? pUnboxings[0] : null;
-                              cachedAnimationData[pIdStr] = {
+                              initialAnimationInput[pIdStr] = {
                                   items: pUnboxings,
-                                  target: targetStopItem // Hedefi de sakla
+                                  target: targetStopItem
                               };
                           });
+                          // --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
-                          // Tam sonuç verisi geldi mi?
-                          if (data.participants) { cachedFullResults = data; }
-                          else { cachedFullResults = null; }
+                          if (data.participants) { cachedFullResults = data; } else { cachedFullResults = null; }
 
-                          // Animasyonu başlat (cache'lenmiş veriyle)
-                          playBattleAnimationWrapper(cachedAnimationData)
+                          // Animasyonu başlat (target belirlenmiş olarak)
+                          playBattleAnimationWrapper(initialAnimationInput) // İlk çalıştırma
                               .then(() => { console.log("Başlatma sonrası animasyon başarıyla tamamlandı."); showStatusMessage(startBattleStatus, '', 'info'); })
                               .catch(err => { console.error("Başlatma sonrası animasyon zincirinde hata:", err); updateUIBasedOnState(); });
                       } else {
                           cachedAnimationData = null; cachedFullResults = null; updateUIBasedOnState();
                           throw new Error(data.message || data.error || 'Savaş başlatıldı ancak animasyon verisi alınamadı.');
                       }
-                      // --- --- --- --- --- --- --- --- --- --- --- --- --- ---
                  } else {
                        currentBattleStatus = data.battle_status || 'ERROR';
                        cachedAnimationData = null; cachedFullResults = null; updateUIBasedOnState();
@@ -410,10 +322,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (replayButton) {
          replayButton.addEventListener('click', () => {
               console.log("Replay butonuna tıklandı.");
-              // --- DÜZELTME: cachedAnimationData kullan ---
-              if (isAnimating || !cachedAnimationData) { console.warn("Animasyon चल रहा है veya tekrar oynatılacak animasyon verisi yok."); return; }
-              console.log("Animasyon tekrar başlatılıyor...", cachedAnimationData);
-              playBattleAnimationWrapper(cachedAnimationData) // Cache'lenmiş veriyle dikey animasyonu başlat
+              // --- DÜZELTME: cachedAnimationData'yı gönder ---
+              if (isAnimating || !cachedAnimationData) { console.warn("Animasyon çalışıyor veya tekrar oynatılacak animasyon verisi (dizilim) yok."); return; }
+              console.log("Animasyon tekrar başlatılıyor (kaydedilmiş dizilimle)...", cachedAnimationData);
+              playBattleAnimationWrapper(cachedAnimationData) // Cache'lenmiş tam dizilimi gönder
                   .catch(err => console.error("Tekrar oynatma sırasında animasyon hatası:", err));
               // --- --- --- --- --- --- --- --- --- --- ---
          });
